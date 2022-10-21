@@ -31,9 +31,7 @@ def create_identity_kernel(groups_channel, groups):
 
 
 def merge_kernels(kernels: Sequence[Parameter], kernel_sizes: Sequence[int]) -> Parameter:
-    if list(kernel_sizes) != sorted(kernel_sizes, reverse=True):
-        raise ValueError("`kernel_sizes` must be sorted.")
-    max_kernel = kernel_sizes[0]
+    max_kernel = max(kernel_sizes)
     padding_size = [(max_kernel - k) // 2 for k in kernel_sizes]
     kernels = [zero_padding(k, p) for k, p in zip(kernels, padding_size)]
 
@@ -56,7 +54,7 @@ def fuse_conv_bn(conv_kernel: Parameter, bn: BatchNorm2d, conv_bias: Optional[Pa
 
 
 def _get_dilation_kernel_size(kernel_size, dilation):
-    return kernel_size + (dilation - 1) * (kernel_size + 1)
+    return kernel_size + (dilation - 1) * (kernel_size - 1)
 
 
 def pad_with_dilation(kernel: Parameter, dilation: int) -> Parameter:
@@ -66,7 +64,7 @@ def pad_with_dilation(kernel: Parameter, dilation: int) -> Parameter:
     assert kernel.shape[-2] == kernel_size and kernel_size % 2
 
     s = _get_dilation_kernel_size(kernel_size, dilation)
-    mask = [(i + 1) % dilation == 0 for i in range(s)]
+    mask = [i % dilation == 0 for i in range(s)]
     dilation_kernel = F.zeros((*kernel.shape[:-2], s, s))
     for h in range(s):
         if mask[h]:

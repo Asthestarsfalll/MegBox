@@ -18,6 +18,7 @@ __all__ = [
     'RepLargeKernelConv2d',
 ]
 
+
 def _init_weights(m):
     if isinstance(m, ConvBn2d):
         if m.conv.bias is not None:
@@ -130,9 +131,9 @@ class RepConv2d(Module):
         self.reparam = Conv2d(
             in_channels=self.large.conv.in_channels,
             out_channels=self.large.conv.out_channels,
-            kernel_size=kernel_sizes[0],
+            kernel_size=max(kernel_sizes),
             stride=self.large.conv.stride,
-            padding=kernel_sizes[0] // 2,
+            padding=max(kernel_sizes) // 2,
             groups=self.large.conv.groups,
             bias=True,
         )
@@ -170,9 +171,6 @@ class RepLargeKernelConv2d(Module):
 
         if isinstance(small_kernel_size, int):
             small_kernel_size = [small_kernel_size]
-
-        if list(small_kernel_size) != sorted(small_kernel_size, reverse=True):
-            raise ValueError("`small_kernel_size` muse be sorted")
 
         if isinstance(dilation, int):
             dilation = [dilation] * (len(small_kernel_size) + 1)
@@ -235,9 +233,9 @@ class RepLargeKernelConv2d(Module):
         self.reparam = Conv2d(
             in_channels=self.dw_large.conv.in_channels,
             out_channels=self.dw_large.conv.out_channels,
-            kernel_size=kernel_sizes[0],
+            kernel_size=max(kernel_sizes),
             stride=self.dw_large.conv.stride,
-            padding=kernel_sizes[0] // 2,
+            padding=max(kernel_sizes) // 2,
             groups=self.dw_large.conv.groups,
             bias=True,
         )
