@@ -1,9 +1,8 @@
-from functools import partial
 from typing import Optional, Sequence
 
 import megengine.functional as F
 from megengine import Parameter, Tensor
-from megengine.module import BatchNorm2d, ConvBn2d, Module
+from megengine.module import BatchNorm2d
 
 from ..functional.tensor import pad
 
@@ -20,17 +19,21 @@ def create_identity_kernel(groups_channel, groups):
     # group convlution kernel shape:
     # [groups, out_channels // groups, in_channels // groups, kernel_size, kernel_size]
     kernel_value = F.zeros(
-        (groups_channel * groups, groups_channel, 1, 1), dtype='float32')
+        (groups_channel * groups, groups_channel, 1, 1), dtype="float32"
+    )
     for i in range(groups_channel * groups):
         kernel_value[i, i % groups_channel, 0, 0] = 1
     if groups > 1:
         kernel_value = kernel_value.reshape(
-            groups, groups_channel, groups_channel, 1, 1)
+            groups, groups_channel, groups_channel, 1, 1
+        )
     identity = Parameter(kernel_value)
     return identity
 
 
-def merge_kernels(kernels: Sequence[Parameter], kernel_sizes: Sequence[int]) -> Parameter:
+def merge_kernels(
+    kernels: Sequence[Parameter], kernel_sizes: Sequence[int]
+) -> Parameter:
     max_kernel = max(kernel_sizes)
     padding_size = [(max_kernel - k) // 2 for k in kernel_sizes]
     kernels = [zero_padding(k, p) for k, p in zip(kernels, padding_size)]
@@ -38,7 +41,10 @@ def merge_kernels(kernels: Sequence[Parameter], kernel_sizes: Sequence[int]) -> 
     return sum(kernels)
 
 
-def fuse_conv_bn(conv_kernel: Parameter, bn: BatchNorm2d, conv_bias: Optional[Parameter] = None):
+def fuse_conv_bn(
+    conv_kernel: Parameter, bn: BatchNorm2d, conv_bias: Optional[Parameter] = None
+):
+    assert bn.affine
     running_mean = bn.running_mean
     running_var = bn.running_var
     gamma = bn.weight
@@ -48,8 +54,9 @@ def fuse_conv_bn(conv_kernel: Parameter, bn: BatchNorm2d, conv_bias: Optional[Pa
     # for broadcast
     t = (gamma / std).reshape(*conv_kernel.shape[:-3], 1, 1, 1)
     rep_kernel = conv_kernel * t
-    rep_bias = beta - running_mean * gamma / \
-        std + 0 if conv_bias is None else conv_bias
+    rep_bias = beta - running_mean * gamma / std
+    if conv_bias is not None:
+        rep_bias += conv_bias
     return rep_kernel, rep_bias
 
 
@@ -70,6 +77,7 @@ def pad_with_dilation(kernel: Parameter, dilation: int) -> Parameter:
         if mask[h]:
             for w in range(s):
                 if mask[w]:
-                    dilation_kernel[..., h, w] = kernel[...,
-                                                        h // dilation, w // dilation]
+                    dilation_kernel[..., h, w] = kernel[
+                        ..., h // dilation, w // dilation
+                    ]
     return Parameter(dilation_kernel)

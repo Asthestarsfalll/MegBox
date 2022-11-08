@@ -1,21 +1,21 @@
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import megengine.functional as F
-import numpy as np
+import megengine.module as M
 from megengine import Parameter, Tensor
 from megengine.module import BatchNorm2d as MgeBatchNorm2d
 from megengine.module import Conv2d
 from megengine.module import ConvBn2d as MgeConvBn2d
 from megengine.module import Identity, Module, ReLU
 
-from .utils import create_identity_kernel, fuse_conv_bn, merge_kernels, pad_with_dilation, _get_dilation_kernel_size
-import megengine.module as M
+from .utils import (_get_dilation_kernel_size, create_identity_kernel,
+                    fuse_conv_bn, merge_kernels, pad_with_dilation)
 
 __all__ = [
-    'BatchNorm2d',
-    'ConvBn2d',
-    'RepConv2d',
-    'RepLargeKernelConv2d',
+    "BatchNorm2d",
+    "ConvBn2d",
+    "RepConv2d",
+    "RepLargeKernelConv2d",
 ]
 
 
@@ -26,17 +26,17 @@ def _init_weights(m):
 
 
 class ConvBn2d(MgeConvBn2d):
-
-    def _get_equivalent_kernel_bias(self) -> None:
+    def _get_equivalent_kernel_bias(self) -> Tuple[Parameter, Parameter]:
         kernel = pad_with_dilation(self.conv.weight, self.conv.dilation[0])
         return fuse_conv_bn(kernel, self.bn, self.conv.bias)
 
 
 class BatchNorm2d(MgeBatchNorm2d):
-
-    def _get_equivalent_kernel_bias(self, groups_channel: int, groups: int) -> None:
+    def _get_equivalent_kernel_bias(
+        self, groups_channel: int, groups: int
+    ) -> Tuple[Parameter, Parameter]:
         identity_kernel = create_identity_kernel(groups_channel, groups)
-        return fuse_conv_bn(identity_kernel, self.bn)
+        return fuse_conv_bn(identity_kernel, self)
 
 
 class RepConv2d(Module):
@@ -57,8 +57,7 @@ class RepConv2d(Module):
         super(RepConv2d, self).__init__()
 
         if small_kernel_size > kernel_size:
-            raise ValueError(
-                "`small_kernel_size` muse be smaller than `kernel_size`")
+            raise ValueError("`small_kernel_size` muse be smaller than `kernel_size`")
 
         self.kernel_size = kernel_size
         self.small_kernel_size = small_kernel_size
@@ -66,7 +65,7 @@ class RepConv2d(Module):
         self.groups = groups
         self.groups_channel = in_channels // groups
 
-        self.nonlinearity = nonlinearity
+        self.nonlinearity = nonlinearity if nonlinearity is not None else Identity()
         self.attn = attention if attention is not None else Identity()
 
         self.is_deploy = is_deploy
@@ -76,6 +75,7 @@ class RepConv2d(Module):
         self.dilation = dilation
 
         if is_deploy:
+            kernel_size = max(self._get_equivalent_kernel_size())
             self.reparam = Conv2d(
                 in_channels,
                 out_channels,
@@ -86,13 +86,32 @@ class RepConv2d(Module):
                 bias=True,
             )
         else:
-            self.identity = BatchNorm2d(
-                num_features=in_channels) if in_channels == out_channels and stride == 1 else None
+            self.identity = (
+                BatchNorm2d(num_features=in_channels)
+                if in_channels == out_channels and stride == 1
+                else None
+            )
 
-            self.large = ConvBn2d(in_channels, out_channels, kernel_size, stride=stride,
-                                  padding=dilation[0]*(kernel_size//2), groups=groups, dilation=dilation[0], bias=bias)
-            self.small = ConvBn2d(in_channels, out_channels, kernel_size=small_kernel_size, stride=stride,
-                                  padding=dilation[1] * (small_kernel_size // 2), groups=groups, dilation=dilation[1], bias=bias)
+            self.large = ConvBn2d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride=stride,
+                padding=dilation[0] * (kernel_size // 2),
+                groups=groups,
+                dilation=dilation[0],
+                bias=bias,
+            )
+            self.small = ConvBn2d(
+                in_channels,
+                out_channels,
+                kernel_size=small_kernel_size,
+                stride=stride,
+                padding=dilation[1] * (small_kernel_size // 2),
+                groups=groups,
+                dilation=dilation[1],
+                bias=bias,
+            )
 
         self.apply(_init_weights)
 
@@ -103,6 +122,14 @@ class RepConv2d(Module):
         identity = 0 if self.identity is None else self.identity(x)
 
         return self.nonlinearity(self.attn(self.large(x) + self.small(x) + identity))
+
+    def _get_equivalent_kernel_size(self) -> List[int]:
+        kernel_sizes = [
+            _get_dilation_kernel_size(self.kernel_size, self.dilation[0]),
+            _get_dilation_kernel_size(self.small_kernel_size, self.dilation[1]),
+            1,
+        ]
+        return kernel_sizes
 
     def switch_to_deploy(self) -> None:
         if self.is_deploy:
@@ -116,14 +143,10 @@ class RepConv2d(Module):
             bias_id = F.zeros_like(bias_L)
         else:
             kernel_id, bias_id = self.identity._get_equivalent_kernel_bias(
-                self.groups_channel, self.groups)
+                self.groups_channel, self.groups
+            )
 
-        kernel_sizes = [
-            _get_dilation_kernel_size(self.kernel_size, self.dilation[0]),
-            _get_dilation_kernel_size(
-                self.small_kernel_size, self.dilation[1]),
-            1,
-        ]
+        kernel_sizes = self._get_equivalent_kernel_size()
 
         kernel = merge_kernels([kernel_L, kernel_S, kernel_id], kernel_sizes)
         bias = bias_L + bias_S + bias_id
@@ -143,12 +166,12 @@ class RepConv2d(Module):
 
         for para in self.parameters():
             para.detach()
-        self.__delattr__('large')
-        self.__delattr__('small')
-        if hasattr(self, 'identity'):
-            self.__delattr__('identity')
-        if hasattr(self, 'bn_identity'):
-            self.__delattr__('bn_identity')
+        self.__delattr__("large")
+        self.__delattr__("small")
+        if hasattr(self, "identity"):
+            self.__delattr__("identity")
+        if hasattr(self, "bn_identity"):
+            self.__delattr__("bn_identity")
         self.is_deploy = True
 
 
@@ -181,25 +204,46 @@ class RepLargeKernelConv2d(Module):
         self.dilation = dilation
 
         if is_deploy:
+            kernel_size = max(self._get_equivalent_kernel_size())
             self.reparam = Conv2d(
-                in_channels=in_ch,
-                out_channels=out_ch,
+                in_channels=channels,
+                out_channels=channels,
                 kernel_size=kernel_size,
                 stride=stride,
                 padding=kernel_size // 2,
-                groups=groups,
+                groups=channels,
                 bias=True,
             )
         else:
-            self.dw_large = ConvBn2d(channels, channels, kernel_size, stride=stride, padding=dilation[0] * (
-                kernel_size // 2), groups=channels, dilation=dilation[0], bias=bias)
+            self.dw_large = ConvBn2d(
+                channels,
+                channels,
+                kernel_size,
+                stride=stride,
+                padding=dilation[0] * (kernel_size // 2),
+                groups=channels,
+                dilation=dilation[0],
+                bias=bias,
+            )
 
             for k, d in zip(small_kernel_size, dilation[1:]):
                 if k > kernel_size:
                     raise ValueError(
-                        "`small_kernel_size` muse be smaller than `kernel_size`")
-                self.__setattr__(f'dw_small_{k}', ConvBn2d(
-                    channels, channels, k, stride=stride, padding=d * (k // 2), groups=channels, dilation=d, bias=bias))
+                        "`small_kernel_size` muse be smaller than `kernel_size`"
+                    )
+                self.__setattr__(
+                    f"dw_small_{k}",
+                    ConvBn2d(
+                        channels,
+                        channels,
+                        k,
+                        stride=stride,
+                        padding=d * (k // 2),
+                        groups=channels,
+                        dilation=d,
+                        bias=bias,
+                    ),
+                )
 
         self.apply(_init_weights)
 
@@ -211,6 +255,13 @@ class RepLargeKernelConv2d(Module):
             out += getattr(self, f"dw_small_{k}")(x)
         return out
 
+    def _get_equivalent_kernel_size(self) -> List[int]:
+        kernel_sizes = [self.kernel_size, *self.small_kernel_size]
+        kernel_sizes = [
+            _get_dilation_kernel_size(k, d) for k, d in zip(kernel_sizes, self.dilation)
+        ]
+        return kernel_sizes
+
     def switch_to_deploy(self) -> None:
         if self.is_deploy:
             return
@@ -218,16 +269,14 @@ class RepLargeKernelConv2d(Module):
         kernel_bias_pairs = [self.dw_large._get_equivalent_kernel_bias()]
         for k in self.small_kernel_size:
             kernel_bias_pairs.append(
-                getattr(self, f'dw_small_{k}')._get_equivalent_kernel_bias())
-            self.__delattr__(f'dw_small_{k}')
+                getattr(self, f"dw_small_{k}")._get_equivalent_kernel_bias()
+            )
+            self.__delattr__(f"dw_small_{k}")
 
-        kernel_sizes = [self.kernel_size, *self.small_kernel_size]
-        kernel_sizes = [_get_dilation_kernel_size(
-            k, d) for k, d in zip(kernel_sizes, self.dilation)]
-        kernel = merge_kernels(
-            [p[0] for p in kernel_bias_pairs],
-            kernel_sizes
-        )
+        kernel_sizes = self._get_equivalent_kernel_size()
+        kernels = [p[0] for p in kernel_bias_pairs]
+
+        kernel = merge_kernels(kernels, kernel_sizes)
         bias = sum([p[1] for p in kernel_bias_pairs])
 
         self.reparam = Conv2d(
@@ -245,6 +294,6 @@ class RepLargeKernelConv2d(Module):
 
         for para in self.parameters():
             para.detach()
-        self.__delattr__('dw_large')
 
+        self.__delattr__("dw_large")
         self.is_deploy = True
