@@ -8,7 +8,7 @@
 
 
 
-`MegBox` is still in early development stage.
+`MegBox` is still in an early development stage.
 
 ## Features
 
@@ -50,7 +50,7 @@ y2 = esay_use.where(x > 0, x, 0)
 print(esay_use.all(y1 == y2))
 ```
 
-More details can be found in documents(will be spporter soon).
+More details can be found in documents(will be supported as soon as possible).
 
 ### well-rounded
 
@@ -80,7 +80,48 @@ module = AdaptiveAvgPool2D(7)
 module = AdaptiveMaxPool2D(3)
 ```
 
-Commonly used attention block and some kinds of convolution variants.
+Commonly used attention block:
+
+```python
+from megbox import attention
+
+se = attention.SEBlock(in_channels=64, reduction=16)
+```
+
+Some kinds of convolution variants:
+
+```python
+from megbox import conv
+
+involution = conv.Involution(channels=64, kernel_size=11, stride=1)
+```
+
+Further support for reparameterization convolution with dilation:
+
+```python
+from megbox.reparam import RepConv2d, RepLargeKernelConv2d
+
+rep_conv = RepConv2d(32, 32, dilation=(1, 2))
+rep_lk_conv = RepLargeKernelConv2d(
+    channels=32,
+    kernel_size=11,
+    small_kernel_size=(5, 1),
+    dilation=2,
+)
+
+rep_conv.switch_to_deploy()
+rep_lk_conv.switch_to_deploy()
+```
+
+Visualize the reparameterization process:
+
+```python
+from megbox.reparam import visualize
+
+visualize(kernel_sizes=(7, 5, 3), dilations=(2, 3, 1), save_dir='./')
+```
+
+
 
 ### safe
 
@@ -98,22 +139,12 @@ y1 = F.sort(x)
 y2 = sort(x)
 ```
 
-
-
 ## Details
 
 TODO:
 
-## TODO
-
-- [ ]  code style and sort imports
-- [ ] add pre-commit  
-- [ ] add tests
-- [ ] add documents
-- [ ] complete README
-- [ ] ...
-
 ## Reference
 
 [timm](https://github.com/rwightman/pytorch-image-models)
+
 [External-Attention-pytorch](https://github.com/xmu-xiaoma666/External-Attention-pytorch#21-Polarized-Self-Attention-Usage)
