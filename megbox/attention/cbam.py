@@ -1,6 +1,7 @@
-import megengine.module as M
 import megengine.functional as F
+import megengine.module as M
 from megengine import Tensor
+
 from .init import _init_weights
 
 
@@ -14,7 +15,7 @@ class ChannelAttention(M.Module):
             # According official repo, set bias=True
             M.Conv2d(in_channels, inner_chan, 1, bias=True),
             M.ReLU(),
-            M.Conv2d(inner_chan, in_channels, 1, bias=True)
+            M.Conv2d(inner_chan, in_channels, 1, bias=True),
         )
         self.sigmoid = M.Sigmoid()
 
@@ -27,7 +28,7 @@ class ChannelAttention(M.Module):
 class SpatialAttention(M.Module):
     def __init__(self, kernel_size: int = 7) -> None:
         super(SpatialAttention, self).__init__()
-        self.conv = M.Conv2d(2, 1, kernel_size, padding=kernel_size//2)
+        self.conv = M.Conv2d(2, 1, kernel_size, padding=kernel_size // 2)
         self.sigmoid = M.Sigmoid()
 
     def forward(self, x: Tensor) -> Tensor:
@@ -38,10 +39,11 @@ class SpatialAttention(M.Module):
 
 
 class CBAMBlock(M.Module):
-
-    def __init__(self, in_channel: int, reduction: int = 16, kernel_size: int = 7) -> None:
+    def __init__(
+        self, in_channels: int, reduction: int = 16, kernel_size: int = 7
+    ) -> None:
         super().__init__()
-        self.ca = ChannelAttention(in_channel, reduction)
+        self.ca = ChannelAttention(in_channels, reduction)
         self.sa = SpatialAttention(kernel_size)
 
         self.apply(_init_weights)

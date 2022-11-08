@@ -1,6 +1,7 @@
-from megengine.module import Module, ConvBnRelu2d, Conv2d, AvgPool2d, SlidingWindow, Identity
 from megengine import Tensor
 from megengine.functional import expand_dims
+from megengine.module import (AvgPool2d, Conv2d, ConvBnRelu2d, Identity,
+                              Module, SlidingWindow)
 
 # TODO: add cuda implementation
 
@@ -23,13 +24,13 @@ class Involution(Module):
         inner_chan = channels // reduction
 
         self.conv1 = ConvBnRelu2d(channels, inner_chan, 1)
-        self.conv2 = Conv2d(inner_chan, kernel_size**2*self.groups, 1)
+        self.conv2 = Conv2d(inner_chan, kernel_size**2 * self.groups, 1)
         self.avgpool = AvgPool2d(stride, stride) if stride > 1 else Identity()
         self.slide_window = SlidingWindow(
             kernel_size,
-            padding=dilation*(kernel_size - 1) // 2,
+            padding=dilation * (kernel_size - 1) // 2,
             stride=stride,
-            dilation=dilation
+            dilation=dilation,
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -39,7 +40,8 @@ class Involution(Module):
         weight = expand_dims(weight, 2)
 
         out = self.slide_window(x).reshape(
-            b, self.groups, self.group_channels, self.kernel_size ** 2, h, w)
+            b, self.groups, self.group_channels, self.kernel_size**2, h, w
+        )
         out = (weight * out).sum(axis=3)
         out = out.reshape(b, -1, h, w)
         return out

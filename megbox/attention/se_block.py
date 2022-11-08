@@ -11,7 +11,7 @@ class SEBlock(M.Module):
         self.gap = M.AdaptiveAvgPool2d(1)
         self.fc1 = M.Conv2d(in_channels, out_channels, kernel_size=1)
         self.relu = M.ReLU()
-        self.fc2 = M.Conv2d(out_channels, channels, kernel_size=1)
+        self.fc2 = M.Conv2d(out_channels, in_channels, kernel_size=1)
         self.sigmoid = M.Sigmoid()
 
         self.apply(_init_weights)

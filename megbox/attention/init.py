@@ -1,4 +1,4 @@
-from megengine.module import BatchNorm1d, BatchNorm2d, Conv2d, Linear, Module
+from megengine.module import BatchNorm1d, BatchNorm2d, Conv2d, Linear
 from megengine.module.init import msra_normal_, normal_, ones_, zeros_
 
 

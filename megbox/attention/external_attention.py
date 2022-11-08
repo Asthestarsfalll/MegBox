@@ -5,17 +5,15 @@ from megengine.functional import softmax
 from .init import _init_weights
 
 
-class EABlcok(M.Module):
-
+class EABlock(M.Module):
     def __init__(self, channels: int, inner_channels: int = 64) -> None:
-        super(EABlcok, self).__init__()
+        super(EABlock, self).__init__()
 
         self.conv1 = M.Conv2d(channels, channels, 1)
         self.linear_0 = M.Conv1d(channels, inner_channels, 1, bias=False)
         self.linear_1 = M.Conv1d(inner_channels, channels, 1, bias=False)
         self.conv2 = M.Sequential(
-            M.Conv2d(channels, channels, 1, bias=False),
-            M.BatchNorm2d(channels)
+            M.Conv2d(channels, channels, 1, bias=False), M.BatchNorm2d(channels)
         )
         self.relu = M.ReLU()
 
@@ -27,8 +25,8 @@ class EABlcok(M.Module):
         x = self.conv1(x)
 
         b, c, h, w = x.shape
-        n = h * w
-        x = x.reshape(b, c, h*w)   # b * c * n
+        h * w
+        x = x.reshape(b, c, h * w)  # b * c * n
 
         attn = self.linear_0(x)  # b, k, n
         attn = softmax(attn, axis=-1)  # b, k, n

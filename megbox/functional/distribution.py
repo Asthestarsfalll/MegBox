@@ -1,6 +1,8 @@
 import random
 from typing import Optional, Sequence
 
+import megengine as mge
+import megengine.functional as F
 from megengine import Tensor
 
 
@@ -15,7 +17,7 @@ def multinomial(x: Tensor, num_samples: int, repalcement: Optional[bool] = None)
     for t in x:
         t = t.numpy()
         ch = []
-        for i in range(num_samples):
+        for _ in range(num_samples):
             prob = random.random()
             for id in range(num_col):
                 if t[id] > prob:
@@ -23,12 +25,12 @@ def multinomial(x: Tensor, num_samples: int, repalcement: Optional[bool] = None)
                     break
             ch.append(idx)
         choices.append(ch)
-    return Tensor(choices, dtype='int32')
+    return Tensor(choices, dtype="int32")
 
 
-def sample_exponential(size: Sequence[int], lambd: float = 1., eps: float = 1e-10):
+def sample_exponential(size: Sequence[int], lambd: float = 1.0, eps: float = 1e-10):
     """
-        Generate random numbers from exponential distribution.
+    Generate random numbers from exponential distribution.
     """
-    random_tensor = random.uniform(0, 1, size=size)
+    random_tensor = mge.random.uniform(0, 1, size=size)
     return -(1 / lambd) * F.log(random_tensor + eps)

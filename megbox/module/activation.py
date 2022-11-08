@@ -1,4 +1,3 @@
-import megengine as mge
 import megengine.module as M
 from megengine import Tensor
 from megengine.functional import tanh
@@ -52,29 +51,72 @@ class HardSigmoid(M.Module):
 
 class HardSwish(M.Module):
     def forward(self, x: Tensor) -> Tensor:
-        return HardSwish(x)
+        return hardswish(x)
 
 
 class HardTanH(M.Module):
-    def __init__(self, max_value: float, min_value: float) -> None:
+    def __init__(self, max_value: float = -1.0, min_value: float = 1.0) -> None:
         super(HardTanH, self).__init__()
         self.max_value = max_value
         self.min_value = min_value
 
     def forward(self, x: Tensor) -> Tensor:
-        return HardSwish(x)
+        return hardtanh(x, self.max_value, self.min_value)
 
 
 class Mish(M.Module):
-    def __init__(self, max_value: float, min_value: float) -> None:
-        super(Mish, self).__init__()
-        self.max_value = max_value
-        self.min_value = min_value
+    def forward(self, x: Tensor) -> Tensor:
+        return mish(x)
+
+
+class RReLU(M.Module):
+    def __init__(self, lower: float = 1 / 8, upper: float = 1 / 3) -> None:
+        super(RReLU, self).__init__()
+        self.lower = lower
+        self.upper = upper
 
     def forward(self, x: Tensor) -> Tensor:
-        return HardSwish(x)
+        return rrelu(x)
 
 
-class TanH(M.Module):
+class Swish(M.Module):
+    def __init__(self, beta: float = 1.0) -> None:
+        super(Swish, self).__init__()
+        self.beta = beta
+
+    def forward(self, x: Tensor) -> Tensor:
+        return swish(x, self.beta)
+
+
+class Softshrink(M.Module):
+    def __init__(self, lambd: float) -> None:
+        super(Softshrink, self).__init__()
+        self.lambd = lambd
+
+    def forward(self, x: Tensor) -> Tensor:
+        return softshrink(x, self.lambd)
+
+
+class Softsign(M.Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return softsign(x)
+
+
+class Tanh(M.Module):
     def forward(self, x: Tensor) -> Tensor:
         return tanh(x)
+
+
+class Tanhshrink(M.Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return tanhshrink(x)
+
+
+class Threshold(M.Module):
+    def __init__(self, threshold: float, value: float) -> None:
+        super(Threshold, self).__init__()
+        self.threshold = threshold
+        self.value = value
+
+    def forward(self, x: Tensor) -> Tensor:
+        return threshold(x, self.threshold, self.value)

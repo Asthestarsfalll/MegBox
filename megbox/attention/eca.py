@@ -10,8 +10,9 @@ class ECABlock(M.Module):
     def __init__(self, in_channels: int, kernel_size: int = 3) -> None:
         super(ECABlock, self).__init__()
         self.gap = M.AdaptiveAvgPool2d(1)
-        self.conv = M.Conv1d(1, 1, kernel_size, padding=(
-            kernel_size - 1) // 2, bias=False)
+        self.conv = M.Conv1d(
+            1, 1, kernel_size, padding=(kernel_size - 1) // 2, bias=False
+        )
         self.sigmoid = M.Sigmoid()
 
         self.apply(_init_weights)

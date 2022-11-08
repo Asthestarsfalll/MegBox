@@ -1,13 +1,6 @@
-# TODO: replace * with details
-from .attention import *
-from .data import *
-from .functional import *
-from .module import *
-from .optimizer import *
-from .reparam import *
-from .transformer import *
-from .esay_use import *
-from .types import *
+from .module import conv
+from .optimizer import lr_scheduler
+from .types import number_type, pooling_type
 
 __version__ = "0.1.0dev0"
 __author__ = "Asthestarsfalll"

@@ -2,7 +2,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import megengine as mge
 import megengine.functional as F
-from megengine import Tensor, random
+from megengine import Tensor
 
 from ..types import number_type
 from ..utils import to_1tuple
@@ -10,9 +10,9 @@ from ..utils import to_1tuple
 
 def _handle_with_number(value: number_type) -> Tensor:
     if isinstance(value, float):
-        return Tensor(value, dtype='float32')
+        return Tensor(value, dtype="float32")
     elif isinstance(value, int):
-        return Tensor(value, dtype='int32')
+        return Tensor(value, dtype="int32")
     return value
 
 
@@ -23,9 +23,7 @@ def _handle_with_negtive_aixs(axis: int, ndim: int) -> int:
 
 
 def where(
-    mask: Tensor,
-    x: Union[Tensor, number_type],
-    y: Union[Tensor, number_type]
+    mask: Tensor, x: Union[Tensor, number_type], y: Union[Tensor, number_type]
 ) -> Tensor:
     return F.where(mask, _handle_with_number(x), _handle_with_number(y))
 
@@ -34,16 +32,14 @@ def pad(
     src: Tensor,
     pad_width: Tuple[int, ...],
     mode: str = "constant",
-    constant_value: float = 0.0
+    constant_value: float = 0.0,
 ) -> Tensor:
     target_length = len(src.shape)
     pad_length = len(pad_width)
     assert pad_length % 2 == 0
-    pad_pairs = [(pad_width[i], pad_width[i + 1])
-                 for i in range(0, pad_length, 2)]
+    pad_pairs = [(pad_width[i], pad_width[i + 1]) for i in range(0, pad_length, 2)]
     if pad_length // 2 != target_length:
-        pad_pairs.extend([(0, 0)
-                         for i in range(target_length - pad_length // 2)])
+        pad_pairs.extend([(0, 0) for i in range(target_length - pad_length // 2)])
     pad_pairs.reverse()
 
     return F.pad(src, tuple(pad_pairs), mode, constant_value)
@@ -78,8 +74,12 @@ def sliding_window_transpose(
         x = F.expand_dims(x, axis=1)
     N, S, L = x.shape
     # N, C, H, W, kh, kw
-    x = x.reshape(N, )
-    return F.sliding_window_transpose(x, output_size, kernel_size, padding, stride, dilation)
+    x = x.reshape(
+        N,
+    )
+    return F.sliding_window_transpose(
+        x, output_size, kernel_size, padding, stride, dilation
+    )
 
 
 def expand_dims_with_repeat(
@@ -107,14 +107,15 @@ def accuracy(output: Tensor, target: Tensor, topk: Tuple = (1,)) -> List[number_
 
 def cosine_similarity(x: Tensor, y: Tensor, axis: int = 1, eps: float = 1e-8) -> Tensor:
     if x.ndim != y.ndim:
-        raise ValueError('The inputs must have same dimension.')
+        raise ValueError("The inputs must have same dimension.")
 
     axis = _handle_with_negtive_aixs(axis, x.ndim)
 
     if axis >= x.ndim:
-        raise ValueError('Wrong axis was given.')
-    t = F.norm(x, ord=2., axis=axis, keepdims=False) * \
-        F.norm(y, ord=2., axis=axis, keepdims=False)
+        raise ValueError("Wrong axis was given.")
+    t = F.norm(x, ord=2.0, axis=axis, keepdims=False) * F.norm(
+        y, ord=2.0, axis=axis, keepdims=False
+    )
     t = F.maximum(t, eps)
     return F.sum(x * y, axis=axis) / t
 
@@ -125,12 +126,15 @@ def differentiable_topk(x: Tensor, k: Tensor, temperature: float = 1.0) -> Tenso
     for i in range(k):
         prob = F.softmax(x / temperature, axis=-1)
         values, indices = F.topk(prob, 1, descending=True)
-        topk = F.scatter(F.zeros_like(x), axis=-1,
-                         index=indices, source=values)
+        topk = F.scatter(F.zeros_like(x), axis=-1, index=indices, source=values)
         topks.append(topk)
         if not i == k - 1:
-            x = F.scatter(x, axis=-1, index=indices,
-                          source=F.full(indices.shape, value=-float('Inf')))
+            x = F.scatter(
+                x,
+                axis=-1,
+                index=indices,
+                source=F.full(indices.shape, value=-float("Inf")),
+            )
     topks = F.concat(topks, axis=-1)
     return F.sum(topks.reshape(n, k, dim), axis=1)
 

@@ -1,9 +1,9 @@
 from collections import OrderedDict
 from typing import Sequence, Union
 
+import megengine.functional as F
 import megengine.module as M
 from megengine import Tensor
-import megengine.functional as F
 
 from ..module.flatten import Flatten
 from .init import _init_weights
@@ -20,12 +20,14 @@ class ChannelAttention(M.Sequential):
             ("relu_1", M.ReLU()),
         ]
 
-        for i in range(num_layers):
-            modules.extend([
-                (f"fc_{i}", M.Linear(in_channels, inner_chan)),
-                (f"bn_{i+1}", M.BatchNorm1d(inner_chan)),
-                (f"relu_{i+1}", M.ReLU()),
-            ])
+        for i in range(1, num_layers):
+            modules.extend(
+                [
+                    (f"fc_{i}", M.Linear(inner_chan, inner_chan)),
+                    (f"bn_{i+1}", M.BatchNorm1d(inner_chan)),
+                    (f"relu_{i+1}", M.ReLU()),
+                ]
+            )
 
         modules.append(("fc_final", M.Linear(inner_chan, in_channels)))
 
@@ -33,7 +35,12 @@ class ChannelAttention(M.Sequential):
 
 
 class SpatialAttention(M.Sequential):
-    def __init__(self, in_channels: int, reduction: int = 16, dilations: Union[int, Sequence[int]] = 4) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        reduction: int = 16,
+        dilations: Union[int, Sequence[int]] = 4,
+    ) -> None:
         inner_chan = in_channels // reduction
         modules = [
             ("conv_reduce", M.Conv2d(in_channels, inner_chan, 1)),
@@ -44,14 +51,20 @@ class SpatialAttention(M.Sequential):
         if isinstance(dilations, int):
             dilations = [dilations]
         for i, d in enumerate(dilations):
-            modules.extend([
-                (f"conv_{i}", M.Conv2d(
-                    inner_chan, inner_chan, kernel_size=3, padding=d, dilation=d)),
-                (f"bn_{i}", M.BatchNorm2d(inner_chan)),
-                (f"relu_{i}", M.ReLU()),
-            ])
+            modules.extend(
+                [
+                    (
+                        f"conv_{i}",
+                        M.Conv2d(
+                            inner_chan, inner_chan, kernel_size=3, padding=d, dilation=d
+                        ),
+                    ),
+                    (f"bn_{i}", M.BatchNorm2d(inner_chan)),
+                    (f"relu_{i}", M.ReLU()),
+                ]
+            )
 
-        modules.append((f"conv_final", M.Conv2d(inner_chan, 1, 1)))
+        modules.append(("conv_final", M.Conv2d(inner_chan, 1, 1)))
 
         super(SpatialAttention, self).__init__(OrderedDict(modules))
 
@@ -62,11 +75,11 @@ class BAMBlock(M.Module):
         in_channels: int,
         reduction: int = 16,
         dilations: Union[int, Sequence[int]] = 4,
-        num_layers: int = 1
+        num_layers: int = 1,
     ) -> None:
         super(BAMBlock, self).__init__()
-        self.sa = SpatialAttention(in_channels, reduction)
-        self.ca = ChannelAttention(in_channels, reduction)
+        self.sa = SpatialAttention(in_channels, reduction, dilations)
+        self.ca = ChannelAttention(in_channels, reduction, num_layers)
 
         self.apply(_init_weights)
 

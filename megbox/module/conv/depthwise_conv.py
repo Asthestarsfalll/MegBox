@@ -18,8 +18,19 @@ class DepthwiseConv1d(Conv1d):
     ) -> None:
         # megengine don't support groups for conv1d
         raise RuntimeError("Currently do not support DepthwiseSeparableConv1d")
-        super(DepthwiseConv1d, self).__init__(channels, channels, kernel_size, stride, padding, dilation,
-                                              channels, bias, conv_mode, compute_mode, padding_mode)
+        super(DepthwiseConv1d, self).__init__(
+            channels,
+            channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            channels,
+            bias,
+            conv_mode,
+            compute_mode,
+            padding_mode,
+        )
 
 
 class DepthwiseConv2d(Conv2d):
@@ -35,5 +46,16 @@ class DepthwiseConv2d(Conv2d):
         compute_mode: str = "default",
         padding_mode: str = "zeros",
     ) -> None:
-        super(DepthwiseConv2d, self).__init__(channels, channels, kernel_size, stride, padding, dilation,
-                                              channels, bias, conv_mode, compute_mode, padding_mode)
+        super(DepthwiseConv2d, self).__init__(
+            channels,
+            channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            channels,
+            bias,
+            conv_mode,
+            compute_mode,
+            padding_mode,
+        )

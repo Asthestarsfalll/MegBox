@@ -3,11 +3,14 @@ from typing import Sequence, Tuple
 import megengine.functional as F
 from megengine import Tensor
 
-from .functional.logic import all, any
-from .functional.tensor import (expand_dims_with_repeat, pad, randn, exchang_axes,
+from .functional.logic import all, any  # noqa: F401
+from .functional.tensor import exchang_axes  # noqa: F401
+from .functional.tensor import pad  # noqa: F401
+from .functional.tensor import (expand_dims_with_repeat, randn,  # noqa: F401
                                 where)
-from .module.pooling import (AdaptiveAvgPool2D, AdaptiveMaxPool2D, AvgPool2d,
-                             MaxPool2d)
+from .module.pooling import AdaptiveAvgPool2D  # noqa: F401
+from .module.pooling import AvgPool2d  # noqa: F401
+from .module.pooling import AdaptiveMaxPool2D, MaxPool2d  # noqa: F401
 
 
 def broadcast_to(x: Tensor, axis: Sequence[int], shape: Tuple) -> Tensor:

@@ -1,5 +1,6 @@
 from collections import abc
-from megengine.utils.tuple_function import _single, _pair, _triple, _quadruple
+
+from megengine.utils.tuple_function import _pair, _quadruple, _single, _triple
 
 to_1tuple = _single
 to_2tuple = _pair

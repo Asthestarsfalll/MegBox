@@ -1,5 +1,5 @@
-import megengine.module as M
 import megengine.functional as F
+import megengine.module as M
 from megengine import Tensor
 
 

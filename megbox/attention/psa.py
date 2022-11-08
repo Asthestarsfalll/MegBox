@@ -1,9 +1,6 @@
-import math
-from typing import Optional
-
+import megengine.functional as F
 import megengine.module as M
 from megengine import Tensor
-import megengine.functional as F
 
 from .init import _init_weights
 
@@ -20,7 +17,7 @@ class PolarizedChannelAttention(M.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         b, c, h, w = x.shape
-        q = self.w_q(x).reshape(b, h*w, 1)
+        q = self.w_q(x).reshape(b, h * w, 1)
         v = self.w_v(x).reshape(b, self.inner_chan, -1)
         attn = F.expand_dims(v @ self.softmax(q), -1)
         z = F.squeeze(self.w_z(attn), -1)
@@ -51,6 +48,7 @@ class _PolarizedSelfAttention(M.Module):
         super(_PolarizedSelfAttention, self).__init__()
         self.ca = PolarizedChannelAttention(in_channels, reduction)
         self.sa = PolarizedSpatialAttention(in_channels, reduction)
+        self.apply(_init_weights)
 
 
 class ParallelPolarizedSelfAttention(_PolarizedSelfAttention):

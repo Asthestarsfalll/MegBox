@@ -1,5 +1,6 @@
-from setuptools import setup, find_packages
-from megbox import __version__, __author__
+from setuptools import find_packages, setup
+
+from megbox import __author__, __version__
 
 if __name__ == "__main__":
     setup(

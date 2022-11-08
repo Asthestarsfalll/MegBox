@@ -3,20 +3,20 @@ import megengine.functional as F
 from megengine import Tensor
 from megengine.core.tensor.array_method import _elwise
 
-from .tensor import where
 from .distribution import sample_exponential
+from .tensor import where
 
 
 def celu(x: Tensor, alpha: float = 1.0) -> Tensor:
-    return F.maximum(x, 0) + F.minimum(0, alpha*(F.exp(x) - 1))
+    return F.maximum(x, 0) + F.minimum(0, alpha * (F.exp(x) - 1))
 
 
 def drop_path(
     x: Tensor,
-    drop_prob: float = 0.,
+    drop_prob: float = 0.0,
     training: bool = False,
 ) -> Tensor:
-    if drop_prob == 0. or not training:
+    if drop_prob == 0.0 or not training:
         return x
     keep_prob = mge.tensor(1 - drop_prob, dtype=x.dtype)
     # work with diff dim tensors, not just 2D ConvNets
@@ -32,7 +32,7 @@ def erfinv(x: Tensor) -> Tensor:
 
 
 def elu(x: Tensor, alpha: float = 1.0) -> Tensor:
-    return where(x > 0, x, alpha*(F.exp(x) - 1))
+    return where(x > 0, x, alpha * (F.exp(x) - 1))
 
 
 def glu(x: Tensor, axis: int = -1) -> Tensor:
@@ -43,14 +43,14 @@ def glu(x: Tensor, axis: int = -1) -> Tensor:
 
 def gumbel_softmax(
     logits: Tensor,
-    tau: float = 1.,
+    tau: float = 1.0,
     hard: bool = False,
     eps: float = 1e-10,
-    axis: int = -1
+    axis: int = -1,
 ) -> Tensor:
-    """ 
-        Generate gumble noise, G_i = -log(-log(U_i)), U_i \in U(0, 1)
-        More details see https://arxiv.org/pdf/1611.00712.pdf
+    r"""
+    Generate gumble noise, G_i = -log(-log(U_i)), U_i \in U(0, 1)
+    More details see https://arxiv.org/pdf/1611.00712.pdf
     """
     gumble_noise = -F.log(sample_exponential(logits.shape, eps=eps) + eps)
 
@@ -59,8 +59,7 @@ def gumbel_softmax(
 
     if hard:
         index = F.argmax(y_soft, axis=axis, keepdims=True)
-        y_hard = F.scatter(F.zeros_like(logits), axis=axis,
-                           index=index, source=1.0)
+        y_hard = F.scatter(F.zeros_like(logits), axis=axis, index=index, source=1.0)
         ret = y_hard - y_soft.detach() + y_soft
     else:
         ret = y_soft
@@ -90,7 +89,7 @@ def mish(x: Tensor) -> Tensor:
     return x * F.tanh(F.softplus(x))
 
 
-def rrelu(x: Tensor, lower: float = 1/8, upper: float = 1/3) -> Tensor:
+def rrelu(x: Tensor, lower: float = 1 / 8, upper: float = 1 / 3) -> Tensor:
     a = mge.random.uniform(lower, upper, size=(1,))
     return where(x >= 0, x, a * x)
 

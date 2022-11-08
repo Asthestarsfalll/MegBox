@@ -1,9 +1,9 @@
 from typing import Tuple, Union
 
+from megengine import Tensor
 from megengine.module import Conv1d, Conv2d, Module
 
 from .depthwise_conv import DepthwiseConv1d, DepthwiseConv2d
-from megengine import Tensor
 
 
 class DepthwiseSeparableConv1d(Module):
@@ -24,7 +24,16 @@ class DepthwiseSeparableConv1d(Module):
         # megengine don't support groups for conv1d
         raise RuntimeError("Currently do not support DepthwiseSeparableConv1d")
         self.depthwise_conv = DepthwiseConv1d(
-            in_channels, kernel_size, stride, padding, dilation, bias, conv_mode, compute_mode, padding_mode)
+            in_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            bias,
+            conv_mode,
+            compute_mode,
+            padding_mode,
+        )
 
         self.pointwise_conv = Conv1d(
             in_channels,
@@ -57,7 +66,16 @@ class DepthwiseSeparableConv2d(Module):
     ) -> None:
         super(DepthwiseSeparableConv2d, self).__init__()
         self.depthwise_conv = DepthwiseConv2d(
-            in_channels, kernel_size, stride, padding, dilation, bias, conv_mode, compute_mode, padding_mode)
+            in_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            bias,
+            conv_mode,
+            compute_mode,
+            padding_mode,
+        )
 
         self.pointwise_conv = Conv2d(
             in_channels,

@@ -3,7 +3,7 @@ from typing import Optional
 import megengine as mge
 import megengine.module as M
 import numpy as np
-from megengine import Tensor
+from megengine import Parameter, Tensor
 from megengine.functional import (broadcast_to, concat, dropout, full, linear,
                                   logical_or, matmul, repeat, softmax, split,
                                   where, zeros)
@@ -18,7 +18,7 @@ def multi_head_attention(
     attn_output_weight: Tensor,
     attn_output_bias: Optional[Tensor],
     dropout_p: float = 0,
-    out_dropout: float = 0.,
+    out_dropout: float = 0.0,
     in_proj_weight: Optional[Tensor] = None,
     query_weight: Optional[Tensor] = None,
     key_weight: Optional[Tensor] = None,
@@ -41,30 +41,40 @@ def multi_head_attention(
     # Do all the linear projections in batch
     if in_proj_weight is not None:
         query, key, value = split(
-            linear(query, in_proj_weight, in_proj_bias, compute_mode), 3, axis=-1)
+            linear(query, in_proj_weight, in_proj_bias, compute_mode), 3, axis=-1
+        )
     else:
-        assert query_weight is not None and query_bias is not None and key_weight is not None
+        assert (
+            query_weight is not None
+            and query_bias is not None
+            and key_weight is not None
+        )
         q = query
         query = linear(q, query_weight, query_bias, compute_mode)
-        key = linear(q if key is None else key,
-                     key_weight, key_bias, compute_mode)
-        value = linear(q if value is None else value,
-                       value_weight, value_bias, compute_mode)
+        key = linear(q if key is None else key, key_weight, key_bias, compute_mode)
+        value = linear(
+            q if value is None else value, value_weight, value_bias, compute_mode
+        )
     # add bias along batch dimension
     if bias_k is not None and bias_v is not None:
         key = concat([key, repeat(bias_k, bsz, axis=1)])
         value = concat([value, repeat(bias_v, bsz, axis=1)])
         if attn_mask is not None:
             attn_mask_temp = full(
-                (attn_mask.shape[0], attn_mask.shape[1], 1), False, dtype=bool, device=attn_mask.device
+                (attn_mask.shape[0], attn_mask.shape[1], 1),
+                False,
+                dtype=bool,
+                device=attn_mask.device,
             )
             attn_mask = concat([attn_mask, attn_mask_temp], axis=2)
         if key_padding_mask is not None:
             key_padding_mask_temp = full(
-                (key_padding_mask.shape[0], 1), False, dtype=bool, device=key_padding_mask.device
+                (key_padding_mask.shape[0], 1),
+                False,
+                dtype=bool,
+                device=key_padding_mask.device,
             )
-            key_padding_mask = concat(
-                [key_padding_mask, key_padding_mask_temp], axis=1)
+            key_padding_mask = concat([key_padding_mask, key_padding_mask_temp], axis=1)
 
     query = query.reshape(-1, bsz * num_heads, head_dim).transpose(1, 0, 2)
     key = key.reshape(-1, bsz * num_heads, head_dim).transpose(1, 0, 2)
@@ -84,15 +94,20 @@ def multi_head_attention(
         )
         if attn_mask is not None:
             attn_mask_temp = full(
-                (attn_mask.shape[0], attn_mask.shape[1], 1), False, dtype=bool, device=attn_mask.device
+                (attn_mask.shape[0], attn_mask.shape[1], 1),
+                False,
+                dtype=bool,
+                device=attn_mask.device,
             )
             attn_mask = concat([attn_mask, attn_mask_temp], axis=2)
         if key_padding_mask is not None:
             key_padding_mask_temp = full(
-                (key_padding_mask.shape[0], 1), False, dtype=bool, device=key_padding_mask.device
+                (key_padding_mask.shape[0], 1),
+                False,
+                dtype=bool,
+                device=key_padding_mask.device,
             )
-            key_padding_mask = concat(
-                [key_padding_mask, key_padding_mask_temp], axis=1)
+            key_padding_mask = concat([key_padding_mask, key_padding_mask_temp], axis=1)
     # update source sequence length after adjustments
     src_len = key.shape[1]
 
@@ -111,19 +126,19 @@ def multi_head_attention(
 
     # convert mask to float
     if attn_mask is not None and attn_mask.dtype == np.bool:
-        new_attn_mask = where(attn_mask, full(
-            attn_mask.shape, -1e9), full(attn_mask.shape, 0.0))
+        new_attn_mask = where(
+            attn_mask, full(attn_mask.shape, -1e9), full(attn_mask.shape, 0.0)
+        )
         attn_mask = new_attn_mask
 
     # Apply attention on all the projected vectors in batch.
     attn_output_weights = matmul(
         query, key.transpose(0, 2, 1), compute_mode=compute_mode
-    ) / (head_dim ** 0.5)
+    ) / (head_dim**0.5)
     if attn_mask is not None:
         attn_output_weights = attn_output_weights + attn_mask
 
-    attn_output_weights = attn_output_weights.reshape(
-        bsz * num_heads, tgt_len, src_len)
+    attn_output_weights = attn_output_weights.reshape(bsz * num_heads, tgt_len, src_len)
     attn_output_weights = softmax(attn_output_weights, axis=-1)
     if dropout_p > 0.0:
         attn_output_weights = dropout(attn_output_weights, dropout_p)
@@ -134,8 +149,7 @@ def multi_head_attention(
         tgt_len, bsz, num_heads * head_dim
     )
     attn_output_weights = (
-        attn_output_weights.reshape(
-            bsz, num_heads, tgt_len, src_len).sum(axis=1)
+        attn_output_weights.reshape(bsz, num_heads, tgt_len, src_len).sum(axis=1)
         / num_heads
     )
     attn_output = linear(
@@ -155,8 +169,8 @@ class MultiheadAttention(M.Module):
         embed_dim: int,
         num_heads: int,
         bias: bool = True,
-        drop_out: float = 0.,
-        out_dropout: float = 0.,
+        drop_out: float = 0.0,
+        out_dropout: float = 0.0,
         add_bias_kv: bool = False,
         add_zero_attn: bool = False,
         kdim: Optional[int] = None,
@@ -174,11 +188,13 @@ class MultiheadAttention(M.Module):
 
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
-        assert self.head_dim * \
-            num_heads == self.embed_dim, f"embed_dim({embed_dim}) must be divisible by num_heads({num_heads})"
+        assert (
+            self.head_dim * num_heads == self.embed_dim
+        ), f"embed_dim({embed_dim}) must be divisible by num_heads({num_heads})"
         if self._qkv_same_embed_dim:
             self.in_proj = M.Linear(embed_dim, 3 * embed_dim, bias=bias)
         else:
+            raise NotImplementedError()
             self.q_proj = M.Linear(embed_dim, embed_dim, bias=bias)
             self.k_proj = M.Linear(embed_dim, self.kdim, bias=bias)
             self.v_proj = M.Linear(embed_dim, self.vdim, bias=bias)
@@ -186,18 +202,26 @@ class MultiheadAttention(M.Module):
         self.out_proj = M.Linear(embed_dim, embed_dim, bias=bias)
 
         if add_bias_kv:
-            self.bias_k = M.Parameter(
-                mge.random.normal(size=(1, 1, embed_dim)))
-            self.bias_v = M.Parameter(
-                mge.random.normal(size=(1, 1, embed_dim)))
+            self.bias_k = Parameter(mge.random.normal(size=(1, 1, embed_dim)))
+            self.bias_v = Parameter(mge.random.normal(size=(1, 1, embed_dim)))
         else:
             self.bias_k = self.bias_v = None
 
         self._init_parameters()
 
     def _init_parameters(self):
-        M.init.xavier_uniform_(self.in_proj.weight)
-        M.init.zeros_(self.in_proj.bias)
+        if hasattr(self, "in_proj"):
+            M.init.xavier_uniform_(self.in_proj.weight)
+            if self.in_proj.bias is not None:
+                M.init.zeros_(self.in_proj.bias)
+        else:
+            M.init.xavier_uniform_(self.q_proj.weight)
+            M.init.xavier_uniform_(self.k_proj.weight)
+            M.init.xavier_uniform_(self.v_proj.weight)
+            if self.q_proj.bias is not None:
+                M.init.zeros_(self.q_proj.bias)
+                M.init.zeros_(self.k_proj.bias)
+                M.init.zeros_(self.v_proj.bias)
         M.init.zeros_(self.out_proj.bias)
 
     def forward(
@@ -207,11 +231,13 @@ class MultiheadAttention(M.Module):
         v: Optional[Tensor] = None,
         key_padding_mask: Optional[Tensor] = None,
         attn_mask: Optional[Tensor] = None,
-        need_weights: bool = False
+        need_weights: bool = False,
     ) -> Tensor:
         if self._qkv_same_embed_dim:
             return multi_head_attention(
-                q, k, v,
+                q,
+                k,
+                v,
                 head_dim=self.head_dim,
                 num_heads=self.num_heads,
                 attn_output_weight=self.out_proj.weight,
@@ -223,10 +249,13 @@ class MultiheadAttention(M.Module):
                 bias_v=self.bias_v,
                 key_padding_mask=key_padding_mask,
                 attn_mask=attn_mask,
-                need_weights=need_weights)
+                need_weights=need_weights,
+            )
         else:
             return multi_head_attention(
-                q, k, v,
+                q,
+                k,
+                v,
                 head_dim=self.head_dim,
                 num_heads=self.num_heads,
                 query_weight=self.q_proj.weight,
@@ -240,4 +269,5 @@ class MultiheadAttention(M.Module):
                 dropout_p=self.drop_out,
                 key_padding_mask=key_padding_mask,
                 attn_mask=attn_mask,
-                need_weights=need_weights)
+                need_weights=need_weights,
+            )
