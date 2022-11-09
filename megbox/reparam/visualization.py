@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Sequence, Union
+from typing import Sequence, Union
 
 import megengine.functional as F
 import numpy as np
@@ -7,7 +7,8 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from megengine import Tensor
 
-from .utils import _get_dilation_kernel_size, merge_kernels, pad_with_dilation, zero_padding
+from .utils import (_get_dilation_kernel_size, merge_kernels,
+                    pad_with_dilation, zero_padding)
 
 
 def create_kernel(kernel_size: int) -> Tensor:
@@ -15,12 +16,17 @@ def create_kernel(kernel_size: int) -> Tensor:
 
 
 def save_kernel_to_image(
-    name: str, kernel: Tensor, max_value: int, annot: bool = True, save_dpi: int = 400, **kwargs
+    name: str,
+    kernel: Tensor,
+    max_value: int,
+    annot: bool = True,
+    save_dpi: int = 400,
+    **kwargs,
 ) -> None:
     image = kernel[0, 0].numpy().astype(np.uint8)
     heatmap_kwargs = dict(
         data=image,
-        fmt='d',
+        fmt="d",
         annot=annot,
         vmin=0,
         vmax=max_value,
@@ -44,8 +50,7 @@ def visualize(
     **kwargs,
 ) -> None:
 
-    kernel_sizes = [kernel_sizes] if isinstance(
-        kernel_sizes, int) else kernel_sizes
+    kernel_sizes = [kernel_sizes] if isinstance(kernel_sizes, int) else kernel_sizes
     dilations = [dilations] if isinstance(dilations, int) else dilations
 
     max_value = len(kernel_sizes)
@@ -60,8 +65,7 @@ def visualize(
     if fix_grid:
         max_kernel = max(equivalent_kernel_size)
         padding_size = [(max_kernel - k) // 2 for k in equivalent_kernel_size]
-        pad_kernels = [zero_padding(k, p)
-                       for k, p in zip(pad_kernels, padding_size)]
+        pad_kernels = [zero_padding(k, p) for k, p in zip(pad_kernels, padding_size)]
         equivalent_kernel_size = [max_kernel] * max_value
 
     merged_kernel = merge_kernels(pad_kernels, equivalent_kernel_size)
@@ -78,5 +82,10 @@ def visualize(
             **kwargs,
         )
     save_kernel_to_image(
-        os.path.join(save_dir, "merged_kernel.png"), merged_kernel, max_value, annot, save_dpi, **kwargs
+        os.path.join(save_dir, "merged_kernel.png"),
+        merged_kernel,
+        max_value,
+        annot,
+        save_dpi,
+        **kwargs,
     )
