@@ -1,35 +1,51 @@
 import os
-from typing import Sequence, Union
+from typing import Optional, Sequence, Union
 
-import cv2
 import megengine.functional as F
 import numpy as np
+import seaborn as sns
+from matplotlib import pyplot as plt
+from megengine import Tensor
 
 from .utils import _get_dilation_kernel_size, merge_kernels, pad_with_dilation
 
+MAX = 1
 
-def create_kernel(kernel_size):
+
+def create_kernel(kernel_size: int) -> Tensor:
     return F.ones((1, 1, kernel_size, kernel_size))
 
 
-def convert_kernel_to_image(kernel, point_size):
-    image = kernel[0, 0].numpy()
-    image = image / np.max(image) * 255
-    image = np.clip(image, 0, 255).astype(np.uint8)
-    size = image.shape[0] * point_size
-    image = cv2.resize(image, (size, size), interpolation=cv2.INTER_NEAREST)
-    image = cv2.applyColorMap(image, cv2.COLORMAP_JET)
-    return image
+def save_kernel_to_image(
+    name: str, kernel: Tensor, annot: bool = True, **kwargs
+) -> None:
+    image = kernel[0, 0].numpy().astype(np.uint8)
+    heatmap = sns.heatmap(
+        image, linewidths=5, fmt="d", annot=annot, vmin=0, vmax=MAX, **kwargs
+    )
+    fig = heatmap.get_figure()
+    fig.savefig(name, dpi=400)
+    plt.close()
 
 
 def visualize(
     kernel_sizes: Union[int, Sequence[int]],
     dilations: Union[int, Sequence[int]],
-    point_size: int = 20,
+    annot: bool = True,
+    max_value: Optional[int] = None,
     save_dir: str = "./",
-):
+    **kwargs,
+) -> None:
+
+    global MAX
+
     kernel_sizes = [kernel_sizes] if isinstance(kernel_sizes, int) else kernel_sizes
     dilations = [dilations] if isinstance(dilations, int) else dilations
+
+    if max_value is not None and max_value < len(kernel_sizes):
+        raise ValueError()
+
+    MAX = len(kernel_sizes) if max_value is not None else max_value
 
     kernels = [create_kernel(k) for k in kernel_sizes]
 
@@ -41,11 +57,15 @@ def visualize(
 
     merged_kernel = merge_kernels(pad_kernels, equivalent_kernel_size)
 
-    images = [convert_kernel_to_image(k, point_size) for k in pad_kernels]
-    merged_image = convert_kernel_to_image(merged_kernel, point_size)
-
     os.makedirs(save_dir, exist_ok=True)
 
-    for i, k, d in zip(images, kernel_sizes, dilations):
-        cv2.imwrite(os.path.join(save_dir, f"kernel_size_{k}_dilation_{d}.png"), i)
-    cv2.imwrite(os.path.join(save_dir, "merged_kernel.png"), merged_image)
+    for i, k, d in zip(pad_kernels, kernel_sizes, dilations):
+        save_kernel_to_image(
+            os.path.join(save_dir, f"kernel_size_{k}_dilation_{d}.png"),
+            i,
+            annot,
+            **kwargs,
+        )
+    save_kernel_to_image(
+        os.path.join(save_dir, "merged_kernel.png"), merged_kernel, annot, **kwargs
+    )
