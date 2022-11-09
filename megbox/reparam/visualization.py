@@ -7,9 +7,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from megengine import Tensor
 
-from .utils import _get_dilation_kernel_size, merge_kernels, pad_with_dilation
-
-MAX = 1
+from .utils import _get_dilation_kernel_size, merge_kernels, pad_with_dilation, zero_padding
 
 
 def create_kernel(kernel_size: int) -> Tensor:
@@ -17,35 +15,40 @@ def create_kernel(kernel_size: int) -> Tensor:
 
 
 def save_kernel_to_image(
-    name: str, kernel: Tensor, annot: bool = True, **kwargs
+    name: str, kernel: Tensor, max_value: int, annot: bool = True, save_dpi: int = 400, **kwargs
 ) -> None:
     image = kernel[0, 0].numpy().astype(np.uint8)
-    heatmap = sns.heatmap(
-        image, linewidths=5, fmt="d", annot=annot, vmin=0, vmax=MAX, **kwargs
+    heatmap_kwargs = dict(
+        data=image,
+        fmt='d',
+        annot=annot,
+        vmin=0,
+        vmax=max_value,
+        linewidths=0.5,
     )
+    heatmap_kwargs.update(kwargs)
+    heatmap = sns.heatmap(**heatmap_kwargs)
     fig = heatmap.get_figure()
-    fig.savefig(name, dpi=400)
+    fig.savefig(name, dpi=save_dpi)
     plt.close()
 
 
 def visualize(
     kernel_sizes: Union[int, Sequence[int]],
     dilations: Union[int, Sequence[int]],
+    *,
+    fix_grid: bool = False,
     annot: bool = True,
-    max_value: Optional[int] = None,
     save_dir: str = "./",
+    save_dpi: int = 400,
     **kwargs,
 ) -> None:
 
-    global MAX
-
-    kernel_sizes = [kernel_sizes] if isinstance(kernel_sizes, int) else kernel_sizes
+    kernel_sizes = [kernel_sizes] if isinstance(
+        kernel_sizes, int) else kernel_sizes
     dilations = [dilations] if isinstance(dilations, int) else dilations
 
-    if max_value is not None and max_value < len(kernel_sizes):
-        raise ValueError()
-
-    MAX = len(kernel_sizes) if max_value is not None else max_value
+    max_value = len(kernel_sizes)
 
     kernels = [create_kernel(k) for k in kernel_sizes]
 
@@ -54,6 +57,12 @@ def visualize(
     ]
 
     pad_kernels = [pad_with_dilation(k, d) for k, d in zip(kernels, dilations)]
+    if fix_grid:
+        max_kernel = max(equivalent_kernel_size)
+        padding_size = [(max_kernel - k) // 2 for k in equivalent_kernel_size]
+        pad_kernels = [zero_padding(k, p)
+                       for k, p in zip(pad_kernels, padding_size)]
+        equivalent_kernel_size = [max_kernel] * max_value
 
     merged_kernel = merge_kernels(pad_kernels, equivalent_kernel_size)
 
@@ -62,10 +71,12 @@ def visualize(
     for i, k, d in zip(pad_kernels, kernel_sizes, dilations):
         save_kernel_to_image(
             os.path.join(save_dir, f"kernel_size_{k}_dilation_{d}.png"),
-            i,
-            annot,
+            kernel=i,
+            max_value=max_value,
+            annot=annot,
+            save_dpi=save_dpi,
             **kwargs,
         )
     save_kernel_to_image(
-        os.path.join(save_dir, "merged_kernel.png"), merged_kernel, annot, **kwargs
+        os.path.join(save_dir, "merged_kernel.png"), merged_kernel, max_value, annot, save_dpi, **kwargs
     )
