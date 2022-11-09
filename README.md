@@ -1,4 +1,4 @@
-# MegBox
+
 
 ![logo](logo.png)
 
@@ -17,27 +17,27 @@
 Easily generate tensor:
 
 ```python
-from megbox import esay_use
+from megbox import easy_use
 
-x = esay_use.randn(2, 3, 4, 5, 6)
+x = easy_use.randn(2, 3, 4, 5, 6)
 ```
 
 Easily pad:
 
 ```python
 y1 = F.nn.pad(x, [(0, 0), (0, 0), (0, 0), (0, 1), (1, 0)])
-y2 = esay_use.pad(x, [1, 0, 0, 1])
+y2 = easy_use.pad(x, [1, 0, 0, 1])
 
-print(esay_use.all(y1 == y2))
+print(easy_use.all(y1 == y2))
 ```
 
 Easily exchang axes:
 
 ```python
 y1 = x.transpose(0, 1, 2, 4, 3)
-y2 = esay_use.exchang_axes(x, -2, -1)
+y2 = easy_use.exchang_axes(x, -2, -1)
 
-print(esay_use.all(y1 == y2))
+print(easy_use.all(y1 == y2))
 ```
 
 Easily use where:
@@ -45,9 +45,9 @@ Easily use where:
 ```python
 # use number in where
 y1 = F.where(x > 0, x, mge.tensor(0))
-y2 = esay_use.where(x > 0, x, 0)
+y2 = easy_use.where(x > 0, x, 0)
 
-print(esay_use.all(y1 == y2))
+print(easy_use.all(y1 == y2))
 ```
 
 More details can be found in documents(will be supported as soon as possible).
