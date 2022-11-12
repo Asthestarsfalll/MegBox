@@ -53,6 +53,8 @@ def _init_weights(m):
     elif isinstance(m, BatchNorm2d) and m.affine:
         init.ones_(m.weight)
         init.ones_(m.bias)
+        m.running_mean = mge.functional.full_like(m.running_mean, 0.5)
+        m.running_var = mge.functional.full_like(m.running_var, 0.1)
 
 
 def test_reparams():

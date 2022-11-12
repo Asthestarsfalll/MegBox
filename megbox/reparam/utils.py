@@ -45,6 +45,7 @@ def fuse_conv_bn(
     conv_kernel: Parameter, bn: BatchNorm2d, conv_bias: Optional[Parameter] = None
 ):
     assert bn.affine
+    conv_bias = 0 if conv_bias is None else conv_bias
     running_mean = bn.running_mean
     running_var = bn.running_var
     gamma = bn.weight
@@ -54,9 +55,7 @@ def fuse_conv_bn(
     # for broadcast
     t = (gamma / std).reshape(*conv_kernel.shape[:-3], 1, 1, 1)
     rep_kernel = conv_kernel * t
-    rep_bias = beta - running_mean * gamma / std
-    if conv_bias is not None:
-        rep_bias += conv_bias
+    rep_bias = beta + (conv_bias - running_mean) * gamma / std
     return rep_kernel, rep_bias
 
 
