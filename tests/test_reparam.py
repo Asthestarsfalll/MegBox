@@ -1,7 +1,7 @@
 import megengine as mge
 import numpy as np
-from megengine.module import BatchNorm2d, Conv2d, Identity, init
-from utils import _test_modules
+from megengine.module import Identity
+from utils import _init_weights, _test_modules
 
 from megbox.reparam import RepConv2d, RepLargeKernelConv2d
 
@@ -45,18 +45,6 @@ REPS_KWAGS = dict(
 )
 
 
-def _init_weights(m):
-    if isinstance(m, Conv2d):
-        init.ones_(m.weight)
-        if m.bias is not None:
-            init.ones_(m.bias)
-    elif isinstance(m, BatchNorm2d) and m.affine:
-        init.ones_(m.weight)
-        init.ones_(m.bias)
-        m.running_mean = mge.functional.full_like(m.running_mean, 0.5)
-        m.running_var = mge.functional.full_like(m.running_var, 0.1)
-
-
 def test_reparams():
     batch_size = 2
     spatial_sizes = [64, 128]
@@ -70,8 +58,10 @@ def test_reparams():
             raise ValueError()
         return mge.functional.ones((batch_size, chan, spatial_size, spatial_size))
 
-    def check_func(module, kwargs, sp_size, name):
+    def check_func(cls, kwargs, sp_size, name):
         print(kwargs)
+        module = cls(**kwargs)
+        module.eval()
         module.apply(_init_weights)
         module.eval()
 

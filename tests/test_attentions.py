@@ -90,7 +90,8 @@ def test_attentions():
             chan = random.randint(1, 256)
         return mge.random.normal(0, 1, (batch_size, chan, spatial_size, spatial_size))
 
-    def check_func(module, kwargs, sp_size, name):
+    def check_func(cls, kwargs, sp_size, name):
+        module = cls(**kwargs)
         x = get_input(kwargs, sp_size)
         y = module(x)
         if isinstance(y, tuple):
