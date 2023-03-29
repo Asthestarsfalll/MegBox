@@ -10,11 +10,15 @@ class Lion(Optimizer):
     def __init__(
         self,
         params,
-        lr: float = 1e-4,
+        lr: float,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay: float = 0.0,
     ):
-        assert all([0.0 <= beta <= 1.0 for beta in betas])
+        for beta in betas:
+            if beta < 0 or beta > 1:
+                raise ValueError(
+                    "`beta` must be between [0, 1] but got {}".format(betas)
+                )
 
         defaults = dict(lr=lr, betas=betas, weight_decay=weight_decay)
 
@@ -59,3 +63,58 @@ class Lion(Optimizer):
 
             # _inplace_add_(exp_avg, grad, alpha=1, beta=1 - _beta1)
             exp_avg.set_value(exp_avg + (1 - _beta1) * grad)
+
+
+class Tiger(Optimizer):
+    """
+    Tight-fisted Optimizer(Tiger).
+    Reference: https://github.com/bojone/tiger
+    """
+
+    def __init__(
+        self,
+        params,
+        lr: float,
+        beta: float = 0.965,
+        weight_decay: float = 0.01,
+    ):
+        if lr <= 0.0:
+            raise ValueError("`lr` must be great than 0, but got {}".format(lr))
+        if beta < 0 or beta > 1:
+            raise ValueError("`beta` must be between [0, 1] but got {}".format(beta))
+
+        defaults = dict(lr=lr, beta=beta, weight_decay=weight_decay)
+
+        super().__init__(params, defaults)
+
+    def _create_state(self, param_group):
+        for param in param_group["params"]:
+            self._add_state(param, "exp_avg")
+
+    def _updates(self, param_group):
+        lr = param_group["lr"]
+        weight_decay = param_group["weight_decay"]
+        beta = param_group["beta"]
+
+        def make_scalar(val):
+            return Tensor(val, dtype="float32")
+
+        _weight_decay = make_scalar(weight_decay)
+        _lr, _beta = map(make_scalar, (lr, beta))
+
+        for param in param_group["params"]:
+            if param.grad is None:
+                continue
+            grad = param.grad
+
+            states = self._state[param]
+
+            exp_avg = states["exp_avg"]
+
+            # Perform stepweight decay
+            param.set_value(param * (1 - _lr * _weight_decay))
+
+            # Weight update
+            update = exp_avg * _beta + grad * (1 - _beta)
+
+            param.set_value(param + F.sign(update) * -_lr)

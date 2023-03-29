@@ -7,7 +7,7 @@ from torch.nn import init
 from torch.optim.optimizer import Optimizer
 from utils import _init_weights, _test_modules
 
-from megbox.optimizer import Lion
+from megbox.optimizer import Lion, Tiger
 
 GLOBAL_RTOL = 1e-3
 GLOBAL_ATOL = 1e-5
@@ -48,6 +48,37 @@ class TorchLion(Optimizer):
         return loss
 
 
+class TorchTiger(Optimizer):
+    def __init__(self, params, lr=1e-3, beta=0.965, weight_decay=0.01):
+        if not 0.0 <= lr:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+        if not 0.0 <= beta < 1.0:
+            raise ValueError("Invalid beta parameter at index 0: {}".format(beta))
+        defaults = dict(lr=lr, beta=beta, weight_decay=weight_decay)
+        super().__init__(params, defaults)
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        loss = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                p.data.mul_(1 - group["lr"] * group["weight_decay"])
+                grad = p.grad
+                state = self.state[p]
+                if len(state) == 0:
+                    state["exp_avg"] = torch.zeros_like(p)
+                exp_avg = state["exp_avg"]
+                beta = group["beta"]
+                update = beta * exp_avg + (1 - beta) * grad
+                p.add_(torch.sign(update), alpha=-group["lr"])
+        return loss
+
+
 def _torch_init_weights(m):
     if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
         init.ones_(m.weight)
@@ -85,11 +116,15 @@ OPTIM_KWARGS = dict(
     lion=[
         dict(lr=1e-4, betas=(0.9, 0.99), weight_decay=0.0),
         dict(lr=1e-4, betas=(0.9, 0.99), weight_decay=0.001),
-    ]
+    ],
+    tiger=[
+        dict(lr=1e-4, weight_decay=0.0),
+        dict(lr=1e-4, weight_decay=0.001),
+    ],
 )
 
-OPTIMIZER = dict(lion=Lion)
-TORCH_OPTIM = dict(lion=TorchLion)
+OPTIMIZER = dict(lion=Lion, tiger=Tiger)
+TORCH_OPTIM = dict(lion=TorchLion, tiger=TorchTiger)
 
 
 def get_name(value):
@@ -160,10 +195,8 @@ def test_optim():
                     td = td.cpu()
                 td = td.detach().numpy()
                 np.testing.assert_allclose(md, td, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL)
-                print(np.mean(np.abs(md - td)))
 
         for m, t in zip(loss_rec, torch_loss_rec):
-            print(m, t)
             np.testing.assert_allclose(m, t, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL)
 
         mp = {k: v for k, v in model.named_parameters()}
