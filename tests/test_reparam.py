@@ -58,8 +58,7 @@ def test_reparams():
             raise ValueError()
         return mge.functional.ones((batch_size, chan, spatial_size, spatial_size))
 
-    def check_func(cls, kwargs, sp_size, name):
-        print(kwargs)
+    def check_func(cls, kwargs, sp_size, name, is_gpu):
         module = cls(**kwargs)
         module.eval()
         module.apply(_init_weights)
@@ -90,8 +89,8 @@ def test_reparams():
         )
 
     _test_modules(
-        module_mapper=REPS,
-        kwargs_mapper=REPS_KWAGS,
+        module_mappers=REPS,
+        kwargs_mappers=REPS_KWAGS,
         spatial_sizes=spatial_sizes,
         check_func=check_func,
     )

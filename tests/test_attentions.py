@@ -3,10 +3,19 @@ import random
 import megengine as mge
 from utils import _test_modules
 
-from megbox.attention import (BAMBlock, CBAMBlock, CrissCrossAttention,
-                              EABlock, ECABlock, MultiheadAttention,
-                              OutlookAttention, ParallelPolarizedSelfAttention,
-                              SEBlock, SequentialPolarizedSelfAttention, SimAM)
+from megbox.attention import (
+    BAMBlock,
+    CBAMBlock,
+    CrissCrossAttention,
+    EABlock,
+    ECABlock,
+    MultiheadAttention,
+    OutlookAttention,
+    ParallelPolarizedSelfAttention,
+    SEBlock,
+    SequentialPolarizedSelfAttention,
+    SimAM,
+)
 
 ATTENTION_KWARGS = dict(
     bam=[
@@ -76,9 +85,7 @@ def test_attentions():
     def get_input(kwargs, spatial_size):
         if "dim" in kwargs.keys():
             chan = kwargs["dim"]
-            return mge.random.normal(
-                0, 1, (batch_size, spatial_size, spatial_size, chan)
-            )
+            return mge.random.normal(0, 1, (batch_size, spatial_size, spatial_size, chan))
         if "embed_dim" in kwargs.keys():
             chan = kwargs["embed_dim"]
             return mge.random.normal(0, 1, (batch_size, spatial_size, chan))
@@ -90,7 +97,7 @@ def test_attentions():
             chan = random.randint(1, 256)
         return mge.random.normal(0, 1, (batch_size, chan, spatial_size, spatial_size))
 
-    def check_func(cls, kwargs, sp_size, name):
+    def check_func(cls, kwargs, sp_size, name, is_gpu):
         module = cls(**kwargs)
         x = get_input(kwargs, sp_size)
         y = module(x)
@@ -101,8 +108,8 @@ def test_attentions():
         ), f"Wrong output shape of module {name} with kwargs {kwargs} and spatial size {sp_size}."
 
     _test_modules(
-        module_mapper=ATTENTIONS,
-        kwargs_mapper=ATTENTION_KWARGS,
+        module_mappers=ATTENTIONS,
+        kwargs_mappers=ATTENTION_KWARGS,
         spatial_sizes=spatial_sizes,
         check_func=check_func,
     )

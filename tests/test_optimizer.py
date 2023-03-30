@@ -127,29 +127,28 @@ OPTIMIZER = dict(lion=Lion, tiger=Tiger)
 TORCH_OPTIM = dict(lion=TorchLion, tiger=TorchTiger)
 
 
-def get_name(value):
-    for k, v in OPTIMIZER.items():
-        if value == v:
-            return k
-    raise ValueError
-
-
-def get_grad(model):
-    return dict(
-        conv_w=model.conv.weight.grad,
-        conv_b=model.conv.bias.grad,
-        mlp=model.conv.weight.grad,
+def get_grad(model, to_cpu=False, is_torch=False):
+    grads = dict(
+        conv_w=model.conv.weight.grad.detach(),
+        conv_b=model.conv.bias.grad.detach(),
+        mlp=model.conv.weight.grad.detach(),
     )
+    if to_cpu:
+        grads = {k: v.cpu() for k, v in grads.items()}
+    if is_torch:
+        bias_grad = grads["conv_b"]
+        grads["conv_b"] = bias_grad.reshape(1, bias_grad.shape[0], 1, 1)
+    return {k: v.numpy() for k, v in grads.items()}
 
 
 def test_optim():
     spatial_sizes = [1]
 
-    def check_func(cls, kwargs, sp_size, name):
-        cls_name = get_name(cls)
-        torch_cls = TORCH_OPTIM[cls_name]
+    def check_func(clses, kwargs, sp_size, name, is_gpu):
+        cls, torch_cls = clses
+        kwargs = kwargs[0]
         torch_model = TorchTestNet()
-        if torch.cuda.is_available():
+        if is_gpu:
             torch_model.cuda()
         torch_module = torch_cls(torch_model.parameters(), **kwargs)
 
@@ -158,9 +157,11 @@ def test_optim():
         module = cls(model.parameters(), **kwargs)
         gm = autodiff.GradManager().attach(model.parameters())
 
+        error_msg = (
+            f"Different output of module {name}, with kwargs {kwargs}"  # noqa: E501
+        )
         grad_rec = []
         loss_rec = []
-        torch_grad_rec = []
         torch_loss_rec = []
         for _ in range(10):
             with gm:
@@ -171,33 +172,35 @@ def test_optim():
                 gm.backward(loss)
                 module.step()
                 grad_rec.append(get_grad(model))
+                # print(grad_rec[-1])
                 module.clear_grad()
 
-        for _ in range(10):
+        for idx in range(10):
             x = torch.tensor(np.ones((2, 3, 9, 9)), dtype=torch.float32)
-            if torch.cuda.is_available():
+            if is_gpu:
                 x = x.cuda()
             y = torch_model(x)
             loss = y.sum()
             loss.backward()
-            if torch.cuda.is_available():
+            if is_gpu:
                 loss = loss.cpu()
             torch_loss_rec.append(loss.detach().numpy())
             torch_module.step()
-            torch_grad_rec.append(get_grad(torch_model))
+            grad = get_grad(torch_model, is_gpu, True)
+            for k in ["conv_w", "conv_b", "mlp"]:
+                np.testing.assert_allclose(
+                    grad_rec[idx][k],
+                    grad[k],
+                    atol=GLOBAL_ATOL,
+                    rtol=GLOBAL_RTOL,
+                    err_msg=error_msg,
+                )
             torch_module.zero_grad()
 
-        for m, t in zip(grad_rec, torch_grad_rec):
-            for k in ["conv_w", "conv_b", "mlp"]:
-                md = m[k].numpy()
-                td = m[k]
-                if torch.cuda.is_available():
-                    td = td.cpu()
-                td = td.detach().numpy()
-                np.testing.assert_allclose(md, td, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL)
-
         for m, t in zip(loss_rec, torch_loss_rec):
-            np.testing.assert_allclose(m, t, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL)
+            np.testing.assert_allclose(
+                m, t, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL, err_msg=error_msg
+            )
 
         mp = {k: v for k, v in model.named_parameters()}
         tp = {k: v for k, v in torch_model.named_parameters()}
@@ -205,16 +208,18 @@ def test_optim():
         for mn, p1 in mp.items():
             p1 = p1.numpy()
             p2 = tp[mn]
-            if torch.cuda.is_available():
+            if is_gpu:
                 p2 = p2.cpu()
             p2 = p2.detach().numpy()
             if mn == "conv.bias":
                 p2 = np.expand_dims(p2, (0, 2, 3))
-            np.testing.assert_allclose(p1, p2, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL)
+            np.testing.assert_allclose(
+                p1, p2, atol=GLOBAL_ATOL, rtol=GLOBAL_RTOL, err_msg=error_msg
+            )
 
     _test_modules(
-        module_mapper=OPTIMIZER,
-        kwargs_mapper=OPTIM_KWARGS,
+        module_mappers=[OPTIMIZER, TORCH_OPTIM],
+        kwargs_mappers=OPTIM_KWARGS,
         spatial_sizes=spatial_sizes,
         check_func=check_func,
     )

@@ -1,3 +1,4 @@
+import logging
 import math
 from typing import Callable, Optional, Tuple, Union
 
@@ -8,12 +9,13 @@ from megengine.module.pooling import AvgPool2d as MgeAvgPool2d
 from megengine.module.pooling import MaxPool2d as MgeMaxPool2d
 from megengine.module.pooling import _PoolNd
 
-from ..functional.tensor import pad
-from ..types import pooling_type
+from megbox.functional.tensor import pad
+from megbox.types import pooling_type
+from megbox.utils.msic import borrow_doc
 
 __all__ = [
-    "AdaptiveAvgPool2D",
-    "AdaptiveMaxPool2D",
+    "AdaptiveAvgPool2d",
+    "AdaptiveMaxPool2d",
     "AvgPool2d",
     "MaxPool2d",
 ]
@@ -29,8 +31,13 @@ def _calculate_pad_size(
     return (pad_h, pad_w)
 
 
-def with_ceil_mode(pool: pooling_type, **kwargs) -> _PoolNd:
+def with_ceil_mode(pool: pooling_type, value: float, **kwargs) -> _PoolNd:
     module = pool(**kwargs)
+    mode = "reflect" if value == 0 else "constant"
+    if value == 0:
+        logging.warning(
+            "The implementation of `ceil_mode` is approximate, may cause some potential problems"
+        )
 
     def _process_ceil_mode(self, x):
         x = x[0]
@@ -38,13 +45,14 @@ def with_ceil_mode(pool: pooling_type, **kwargs) -> _PoolNd:
         pad_h, pad_w = _calculate_pad_size(
             h, w, self.padding, self.kernel_size, self.stride
         )
-        return pad(x, (0, pad_w, 0, pad_h))
+        return pad(x, (0, pad_w, 0, pad_h), constant_value=value, mode=mode)
 
     module.register_forward_pre_hook(_process_ceil_mode)
 
     return module
 
 
+@borrow_doc(MgeMaxPool2d)
 def MaxPool2d(
     kernel_size: Union[int, Tuple[int, int]],
     stride: Optional[Union[int, Tuple[int, int]]] = None,
@@ -53,12 +61,17 @@ def MaxPool2d(
 ) -> _PoolNd:
     if ceil_mode:
         return with_ceil_mode(
-            MgeMaxPool2d, kernel_size=kernel_size, stride=stride, padding=padding
+            MgeMaxPool2d,
+            value=-float("inf"),
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
         )
     else:
-        return MgeAvgPool2d(kernel_size, stride, padding)
+        return MgeMaxPool2d(kernel_size, stride, padding)
 
 
+@borrow_doc(MgeAvgPool2d)
 def AvgPool2d(
     kernel_size: Union[int, Tuple[int, int]],
     stride: Optional[Union[int, Tuple[int, int]]] = None,
@@ -67,20 +80,24 @@ def AvgPool2d(
 ) -> _PoolNd:
     if ceil_mode:
         return with_ceil_mode(
-            MgeAvgPool2d, kernel_size=kernel_size, stride=stride, padding=padding
+            MgeAvgPool2d,
+            value=0,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
         )
     else:
         return MgeAvgPool2d(kernel_size, stride, padding)
 
 
 # TODO: refactor and implement it with CPP CUDA.
-class AdaptivePool2D(M.Module):
+class AdaptivePool2d(M.Module):
     def __init__(
         self,
         oshp: Union[int, Tuple[int, int]],
         func: Callable,
     ) -> None:
-        super(AdaptivePool2D, self).__init__()
+        super(AdaptivePool2d, self).__init__()
         if isinstance(oshp, int):
             oshp = (oshp, oshp)
         self.oshp = oshp
@@ -145,13 +162,15 @@ class AdaptivePool2D(M.Module):
         return windows.reshape(*windows.shape[:2], *self.oshp)
 
 
-def AdaptiveAvgPool2D(
+@borrow_doc(M.AdaptiveAvgPool2d)
+def AdaptiveAvgPool2d(
     oshp: Union[int, Tuple[int, int]],
-) -> AdaptivePool2D:
-    return AdaptivePool2D(oshp, F.mean)
+) -> AdaptivePool2d:
+    return AdaptivePool2d(oshp, F.mean)
 
 
-def AdaptiveMaxPool2D(
+@borrow_doc(M.AdaptiveMaxPool2d)
+def AdaptiveMaxPool2d(
     oshp: Union[int, Tuple[int, int]],
-) -> AdaptivePool2D:
-    return AdaptivePool2D(oshp, F.max)
+) -> AdaptivePool2d:
+    return AdaptivePool2d(oshp, F.max)

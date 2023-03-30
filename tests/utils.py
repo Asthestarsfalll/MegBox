@@ -1,8 +1,9 @@
-from typing import Callable, Dict, List, Sequence
+from typing import Callable, Dict, List, Sequence, Union
 
 import megengine as mge
 import megengine.module as M
 from megengine.module import Module, init
+from tqdm import tqdm
 
 
 def _init_weights(m):
@@ -21,19 +22,39 @@ MODULE_TYPE = type(Module)
 
 
 def _test_modules(
-    module_mapper: Dict[str, MODULE_TYPE],
-    kwargs_mapper: Dict[str, List],
+    module_mappers: Union[Dict[str, MODULE_TYPE], List[Dict[str, MODULE_TYPE]]],
+    kwargs_mappers: Union[Dict[str, List], List[Dict[str, List]]],
     spatial_sizes: Sequence[int],
     check_func: Callable,
 ):
-    def run():
-        for name, module_class in module_mapper.items():
-            kwargs_list = kwargs_mapper[name]
-            for kwargs in kwargs_list:
+    if not isinstance(module_mappers, list):
+        module_mappers = [module_mappers]
+    if not isinstance(kwargs_mappers, list):
+        kwargs_mappers = [kwargs_mappers] * len(module_mappers)
+    names = tqdm(module_mappers[0].keys())
+
+    def run(is_gpu: bool):
+        for name in names:
+            names.set_description("test module {}".format(name))
+            module_classes = [mapper[name] for mapper in module_mappers]
+            _default = kwargs_mappers[0][name]
+            kwargs_lists = [mapper.get(name, _default) for mapper in kwargs_mappers]
+            if len(module_classes) == 1:
+                module_classes = module_classes[0]
+            for i in range(len(kwargs_lists[0])):
+                kwargs = [k[i] for k in kwargs_lists]
+                if len(kwargs) == 1:
+                    kwargs = kwargs[0]
                 for sp_size in spatial_sizes:
-                    check_func(module_class, name=name, kwargs=kwargs, sp_size=sp_size)
+                    check_func(
+                        module_classes,
+                        name=name,
+                        kwargs=kwargs,
+                        sp_size=sp_size,
+                        is_gpu=is_gpu,
+                    )
 
     if mge.is_cuda_available():
-        run()
+        run(True)
     mge.set_default_device("cpu0")
-    run()
+    run(False)
