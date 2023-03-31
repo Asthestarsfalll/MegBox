@@ -14,7 +14,7 @@ def _build_mask(b: int, h: int, w: int) -> Tensor:
 
 class CrissCrossAttention(M.Module):
     def __init__(self, in_channels: int, reduction: int = 8) -> None:
-        super(CrissCrossAttention, self).__init__()
+        super().__init__()
         inner_chan = in_channels // reduction
         self.query_conv = M.Conv2d(in_channels, inner_chan, 1)
         self.key_conv = M.Conv2d(in_channels, inner_chan, 1)

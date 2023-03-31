@@ -6,7 +6,7 @@ from megengine import Tensor
 from megengine.optimizer import Optimizer
 
 
-class Lion(Optimizer):
+class Lion(Optimizer):  # pylint: disable=abstract-method
     def __init__(
         self,
         params,
@@ -65,7 +65,7 @@ class Lion(Optimizer):
             exp_avg.set_value(exp_avg + (1 - _beta1) * grad)
 
 
-class Tiger(Optimizer):
+class Tiger(Optimizer):  # pylint: disable=abstract-method
     """
     Tight-fisted Optimizer(Tiger).
     Reference: https://github.com/bojone/tiger

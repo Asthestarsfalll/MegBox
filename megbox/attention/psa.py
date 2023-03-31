@@ -8,7 +8,7 @@ from .init import _init_weights
 class PolarizedChannelAttention(M.Module):
     def __init__(self, in_channels: int, reduction: int = 2):
         self.inner_chan = in_channels // reduction
-        super(PolarizedChannelAttention, self).__init__()
+        super().__init__()
         self.w_q = M.Conv2d(in_channels, 1, 1)
         self.w_v = M.Conv2d(in_channels, self.inner_chan, 1)
         self.softmax = M.Softmax(axis=1)
@@ -28,24 +28,24 @@ class PolarizedChannelAttention(M.Module):
 
 class PolarizedSpatialAttention(M.Module):
     def __init__(self, in_channels: int, reduction: int = 2) -> None:
-        super(PolarizedSpatialAttention, self).__init__()
-        self.inner_chan = in_channels
+        super().__init__()
+        self.inner_chan = in_channels // reduction
         self.w_q = M.Conv2d(in_channels, self.inner_chan, 1)
         self.w_v = M.Conv2d(in_channels, self.inner_chan, 1)
         self.gp = M.AdaptiveAvgPool2d((1, 1))
         self.softmax = M.Softmax(axis=-1)
 
     def forward(self, x: Tensor) -> Tensor:
-        b, c, h, w = x.shape
+        b, _, h, w = x.shape
         q = self.gp(self.w_q(x)).reshape(b, 1, self.inner_chan)
         v = self.w_v(x).reshape(b, self.inner_chan, -1)
         z = (self.softmax(q) @ v).reshape(b, 1, h, w)
         return F.sigmoid(z) * x
 
 
-class _PolarizedSelfAttention(M.Module):
+class _PolarizedSelfAttention(M.Module):  # pylint: disable=abstract-method
     def __init__(self, in_channels: int, reduction: int = 2) -> None:
-        super(_PolarizedSelfAttention, self).__init__()
+        super().__init__()
         self.ca = PolarizedChannelAttention(in_channels, reduction)
         self.sa = PolarizedSpatialAttention(in_channels, reduction)
         self.apply(_init_weights)

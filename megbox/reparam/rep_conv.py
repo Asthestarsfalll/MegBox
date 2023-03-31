@@ -54,7 +54,7 @@ class RepConv2d(Module):
         attention: Optional[Module] = None,
         is_deploy: bool = False,
     ) -> None:
-        super(RepConv2d, self).__init__()
+        super().__init__()
 
         if small_kernel_size > kernel_size:
             raise ValueError("`small_kernel_size` muse be smaller than `kernel_size`")
@@ -91,7 +91,7 @@ class RepConv2d(Module):
                 if in_channels == out_channels and stride == 1
                 else None
             )
-
+            # do not use bias preceding batch_norm
             self.large = ConvBn2d(
                 in_channels,
                 out_channels,
@@ -166,12 +166,12 @@ class RepConv2d(Module):
 
         for para in self.parameters():
             para.detach()
-        self.__delattr__("large")
-        self.__delattr__("small")
+        delattr(self, "large")
+        delattr(self, "small")
         if hasattr(self, "identity"):
-            self.__delattr__("identity")
+            delattr(self, "identity")
         if hasattr(self, "bn_identity"):
-            self.__delattr__("bn_identity")
+            delattr(self, "bn_identity")
         self.is_deploy = True
 
 
@@ -186,7 +186,7 @@ class RepLargeKernelConv2d(Module):
         bias: bool = False,
         is_deploy: bool = False,
     ) -> None:
-        super(RepLargeKernelConv2d, self).__init__()
+        super().__init__()
 
         self.kernel_size = kernel_size
 
@@ -271,13 +271,13 @@ class RepLargeKernelConv2d(Module):
             kernel_bias_pairs.append(
                 getattr(self, f"dw_small_{k}")._get_equivalent_kernel_bias()
             )
-            self.__delattr__(f"dw_small_{k}")
+            delattr(self, f"dw_small_{k}")
 
         kernel_sizes = self._get_equivalent_kernel_size()
         kernels = [p[0] for p in kernel_bias_pairs]
 
         kernel = merge_kernels(kernels, kernel_sizes)
-        bias = sum([p[1] for p in kernel_bias_pairs])
+        bias = sum((p[1] for p in kernel_bias_pairs))
 
         self.reparam = Conv2d(
             in_channels=self.dw_large.conv.in_channels,
@@ -295,5 +295,5 @@ class RepLargeKernelConv2d(Module):
         for para in self.parameters():
             para.detach()
 
-        self.__delattr__("dw_large")
+        delattr(self, "dw_large")
         self.is_deploy = True

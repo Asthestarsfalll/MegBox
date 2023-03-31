@@ -98,8 +98,10 @@ def test_attentions():
         return mge.random.normal(0, 1, (batch_size, chan, spatial_size, spatial_size))
 
     def check_func(cls, kwargs, sp_size, name, is_gpu):
-        module = cls(**kwargs)
         x = get_input(kwargs, sp_size)
+        if cls == ECABlock:
+            kwargs.pop('in_channels', None)
+        module = cls(**kwargs)
         y = module(x)
         if isinstance(y, tuple):
             y = y[0]

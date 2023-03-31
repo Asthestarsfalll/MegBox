@@ -7,7 +7,7 @@ from .init import _init_weights
 
 class ChannelAttention(M.Module):
     def __init__(self, in_channels: int, reduction: int = 16) -> None:
-        super(ChannelAttention, self).__init__()
+        super().__init__()
         inner_chan = in_channels // reduction
         self.max_pool = M.AdaptiveMaxPool2d(1)
         self.avg_pool = M.AdaptiveAvgPool2d(1)
@@ -27,7 +27,7 @@ class ChannelAttention(M.Module):
 
 class SpatialAttention(M.Module):
     def __init__(self, kernel_size: int = 7) -> None:
-        super(SpatialAttention, self).__init__()
+        super().__init__()
         self.conv = M.Conv2d(2, 1, kernel_size, padding=kernel_size // 2)
         self.sigmoid = M.Sigmoid()
 

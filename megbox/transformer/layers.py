@@ -53,7 +53,7 @@ class LayerScale(Module):
         dim: int,
         init_values: float = 1e-5,
     ) -> None:
-        super(LayerScale, self).__init__()
+        super().__init__()
         self.gamma = Parameter(init_values * F.ones([dim]))
 
     def forward(self, x: Tensor) -> Tensor:
@@ -69,7 +69,7 @@ class Mlp(Module):
         act_layer: Module = GELU,
         drop: float = 0.0,
     ) -> None:
-        super(Mlp, self).__init__()
+        super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.fc1 = Linear(in_features, hidden_features)
@@ -101,7 +101,7 @@ class Block(Module):
         act_layer: Module = GELU,
         norm_layer: Module = LayerNorm,
     ) -> None:
-        super(Block, self).__init__()
+        super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = MultiheadAttention(
             dim,

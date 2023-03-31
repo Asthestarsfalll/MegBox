@@ -6,7 +6,7 @@ from .init import _init_weights
 
 class SEBlock(M.Module):
     def __init__(self, in_channels: int, reduction: int) -> None:
-        super(SEBlock, self).__init__()
+        super().__init__()
         out_channels = in_channels // reduction
         self.gap = M.AdaptiveAvgPool2d(1)
         self.fc1 = M.Conv2d(in_channels, out_channels, kernel_size=1)

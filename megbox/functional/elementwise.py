@@ -28,7 +28,7 @@ def drop_path(
 
 
 def erfinv(x: Tensor) -> Tensor:
-    return _elwise(x, "erfinv")
+    return _elwise(x, mode="erfinv")
 
 
 def elu(x: Tensor, alpha: float = 1.0) -> Tensor:
@@ -59,7 +59,9 @@ def gumbel_softmax(
 
     if hard:
         index = F.argmax(y_soft, axis=axis, keepdims=True)
-        y_hard = F.scatter(F.zeros_like(logits), axis=axis, index=index, source=1.0)
+        y_hard = F.scatter(
+            F.zeros_like(logits), axis=axis, index=index, source=F.ones_like(logits)
+        )
         ret = y_hard - y_soft.detach() + y_soft
     else:
         ret = y_soft
@@ -67,7 +69,8 @@ def gumbel_softmax(
 
 
 def hardshrink(x: Tensor, lambd: float = 0.5) -> Tensor:
-    return where((x <= lambd and x >= -lambd), 0, x)
+    condition = (x <= lambd) & (x >= -lambd)
+    return where(condition, 0, x)
 
 
 def hardsigmoid(x: Tensor) -> Tensor:
@@ -111,5 +114,9 @@ def tanhshrink(x: Tensor) -> Tensor:
     return x - F.tanh(x)
 
 
-def threshold(x: Tensor, threshold: float, value: float) -> Tensor:
+def threshold(
+    x: Tensor,
+    threshold: float,  # pylint: disable=redefined-outer-name
+    value: float,
+) -> Tensor:
     return where(x > threshold, x, value)

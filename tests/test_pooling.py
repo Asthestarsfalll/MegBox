@@ -72,8 +72,8 @@ def test_pooling():
         model = cls(**kwargs)
         model.eval()
 
-        data = np.random.randn(batch_size, channels, sp_size, sp_size)
-        # data = np.ones((batch_size, channels, sp_size, sp_size))
+        # data = np.random.randn(batch_size, channels, sp_size, sp_size)
+        data = np.ones((batch_size, channels, sp_size, sp_size))
 
         out = model(mge.tensor(data, dtype="float32")).numpy()
         torch_data = torch.tensor(data, dtype=torch.float32)

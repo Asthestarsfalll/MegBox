@@ -2,7 +2,6 @@ import math
 from typing import Callable, List, Optional, Sequence, Union
 
 from megengine.optimizer import Optimizer
-from megengine.optimizer.lr_scheduler import LRScheduler
 
 from ..types import number_type
 
@@ -21,30 +20,75 @@ def _check_valid(num: Union[number_type, List[number_type]], check_func: Callabl
         assert check_func(i)
 
 
-class BaseLRScheduler(LRScheduler):
+class LRScheduler:
+    __IGNORE_KEYS__ = ["optimizer"]
+
+    def __init__(  # pylint: disable=too-many-branches
+        self, optimizer: Optimizer, current_epoch: int = -1
+    ):
+        if not isinstance(optimizer, Optimizer):
+            raise TypeError(
+                "optimizer argument given to the lr_scheduler should be Optimizer"
+            )
+        self.optimizer = optimizer
+        self.current_epoch = current_epoch
+        if current_epoch == -1:
+            for group in self.optimizer.param_groups:
+                group.setdefault("initial_lr", group["lr"])
+        else:
+            for i, group in enumerate(optimizer.param_groups):
+                if "initial_lr" not in group:
+                    raise KeyError(
+                        "param 'initial_lr' is not specified in "
+                        "param_groups[{}] when resuming an optimizer".format(i)
+                    )
+        self.base_lrs = [group["initial_lr"] for group in self.optimizer.param_groups]
+        self._last_lr = None
+        self.ignore_keys = LRScheduler.__IGNORE_KEYS__ + self.__IGNORE_KEYS__
+
+        self.step()
+
     def state_dict(self):
+        r"""Returns the state of the scheduler as a :class:`dict`.
+        It contains an entry for every variable in self.__dict__ which
+        is not the optimizer.
+        """
         return {
             key: value
             for key, value in self.__dict__.items()
-            if key != "optimizer" and key != "base_lrs"
+            if key not in self.ignore_keys
         }
 
     def load_state_dict(self, state_dict):
-        tmp_dict = {}
-        for key in ["T_max", "eta_min", "current_epoch"]:
-            if key not in state_dict.keys():
-                raise KeyError(
-                    "key '{}'' is not specified in "
-                    "state_dict when loading state dict".format(key)
-                )
-            tmp_dict[key] = state_dict[key]
+        r"""Loads the schedulers state.
 
-        self.__dict__.update(tmp_dict)
+        Args:
+            state_dict: scheduler state.
+        """
+        self.__dict__.update(state_dict)
+
+    def get_last_lr(self):
+        r"""Return last computed learing rate"""
+        return self._last_lr
+
+    def get_lr(self):
+        r"""Compute current learning rate for the scheduler."""
+        raise NotImplementedError
+
+    def step(self, epoch=None):
+        if epoch is None:
+            self.current_epoch += 1
+        else:
+            self.current_epoch = epoch
+
+        values = self.get_lr()
+        for param_group, lr in zip(self.optimizer.param_groups, values):
+            param_group["lr"] = lr
 
 
-class CosineAnnealingLR(BaseLRScheduler):
+class CosineAnnealingLR(LRScheduler):
     """
-    A Simple Implement Of CosineAnnealingLR (https://arxiv.org/abs/1608.03983)
+    CosineAnnealingLR (https://arxiv.org/abs/1608.03983)
     Args:
         optimizer (Optimizer): Wrapped optimizer.
         T_max (int): Maximum number of iterations.
@@ -55,7 +99,7 @@ class CosineAnnealingLR(BaseLRScheduler):
     def __init__(self, optimizer, T_max, eta_min, current_epoch=-1):
         self.T_max = T_max
         self.eta_min = eta_min
-        super(CosineAnnealingLR, self).__init__(optimizer, current_epoch)
+        super().__init__(optimizer, current_epoch)
 
     def get_lr(self):
         if self.current_epoch == -1:
@@ -75,7 +119,16 @@ class CosineAnnealingLR(BaseLRScheduler):
         ]
 
 
-class LambdLR(BaseLRScheduler):
+class LambdLR(LRScheduler):
+    __IGNORE_KEYS__ = ["lr_lambda"]
+    """
+    Set learing rate by given functions.
+    Args:
+        optimizer (Optimizer): Wrapped optimizer.
+        lr_lambda (Callable | List[Callable]): Calculating functions.
+        current_epoch (int): the index of current epoch. Default: -1.
+    """
+
     def __init__(
         self,
         optimizer: Optimizer,
@@ -85,6 +138,13 @@ class LambdLR(BaseLRScheduler):
         super().__init__(optimizer, current_epoch)
         if not isinstance(lr_lambda, Sequence):
             lr_lambda = [lr_lambda] * len(self.base_lrs)
+        elif len(lr_lambda) != len(optimizer.param_groups):
+            raise ValueError(
+                "Expected `lr_lambda` to have the same length of \
+                `param_groups`, but got {}".format(
+                    len(lr_lambda)
+                )
+            )
         self.lr_lambda = lr_lambda
 
     def get_lr(self):
@@ -94,14 +154,14 @@ class LambdLR(BaseLRScheduler):
         ]
 
 
-class OneCycleLR(BaseLRScheduler):
+class OneCycleLR(LRScheduler):
     def __init__(
         self,
         optimizer: Optimizer,
-        max_learning_rate: number_type,
+        max_lr: number_type,
         total_steps: int,
         divide_factor: float = 25.0,
-        end_learning_rate: number_type = 0.0001,
+        end_lr: number_type = 0.0001,
         phase_pct: float = 0.3,
         anneal_strategy: str = "cos",
         three_phase: bool = False,
@@ -109,17 +169,29 @@ class OneCycleLR(BaseLRScheduler):
     ):
 
         _check_valid(
-            [max_learning_rate, total_steps, divide_factor, end_learning_rate],
+            [total_steps, divide_factor],
             lambda x: x > 0,
         )
+        if isinstance(max_lr, (int, float)):
+            max_lr = [max_lr]
+        elif isinstance(max_lr, (list, tuple)):
+            if len(max_lr) != len(self.base_lrs):
+                raise ValueError()
 
-        _check_valid(phase_pct, lambda x: x > 0 and x < 1)
+        if isinstance(end_lr, (int, float)):
+            end_lr = [end_lr]
+        elif isinstance(end_lr, (list, tuple)):
+            if len(end_lr) != len(self.base_lrs):
+                raise ValueError()
+            end_lr = [float(i) for i in end_lr]
+
+        _check_valid(phase_pct, lambda x: 1 > x > 0)
 
         self.total_steps = total_steps
-        self.max_lr = float(max_learning_rate)
-        min_lr = float(end_learning_rate)
+        self.max_lr = max_lr
+        min_lr = end_lr
 
-        initial_lr = max_learning_rate / float(divide_factor)
+        initial_lr = max_lr / float(divide_factor)
         if three_phase:
             # Note: not sure for now
             if phase_pct >= 0.5:
@@ -142,7 +214,7 @@ class OneCycleLR(BaseLRScheduler):
                 self._step_config[3] - self._step_config[2],  # for the last step.
             ]
             # start lr and end lr of each phase.
-            self._lr_config = [initial_lr, max_learning_rate, initial_lr, min_lr]
+            self._lr_config = [initial_lr, max_lr, initial_lr, min_lr]
         else:
             self._step_config = [
                 0,
@@ -155,7 +227,7 @@ class OneCycleLR(BaseLRScheduler):
                 self._step_config[2] - self._step_config[1],
                 self._step_config[2] - self._step_config[1],
             ]
-            self._lr_config = [initial_lr, max_learning_rate, min_lr]
+            self._lr_config = [initial_lr, max_lr, min_lr]
 
         if anneal_strategy == "cos":
             self.anneal_func = self._cos_annealing
@@ -176,7 +248,7 @@ class OneCycleLR(BaseLRScheduler):
     def _linear_annealing(self, start_lr, end_lr, pct):
         return (end_lr - start_lr) * pct + start_lr
 
-    def get_lr(self):
+    def get_lr(self):  # pylint: disable=inconsistent-return-statements
         current_step = self.current_epoch
 
         if current_step > self.total_steps:
@@ -189,7 +261,8 @@ class OneCycleLR(BaseLRScheduler):
         for (i, (end_step, step_size)) in enumerate(
             zip(self._step_config[1:], self._steps_size)
         ):
-            # i == len(self._lr_config) - 2 catch the last step, otherwise it will return None.
+            # i == len(self._lr_config) - 2 catch the last step
+            # otherwise it will return None.
             if current_step <= end_step or i == len(self._lr_config) - 2:
                 # self._step_config[i] means start step of a phase.
                 percentage = (current_step - self._step_config[i]) / step_size
@@ -200,7 +273,7 @@ class OneCycleLR(BaseLRScheduler):
                 ]
 
 
-class CyclicLR(BaseLRScheduler):
+class CyclicLR(LRScheduler):
     def __init__(
         self,
         optimizer: Optimizer,
@@ -256,7 +329,7 @@ class CyclicLR(BaseLRScheduler):
             self.scale_mode = scale_mode
         super().__init__(optimizer, current_epoch)
 
-    def _triangular_scale_fn(self, x):
+    def _triangular_scale_fn(self, _):
         return 1.0
 
     def _triangular2_scale_fn(self, x):
@@ -278,6 +351,10 @@ class CyclicLR(BaseLRScheduler):
 
         base_height = self.amplitude * scale_factor
 
-        lr = self.base_lr + base_height * self.scale_fn(eval(self.scale_mode))
+        if self.scale_mode == "cycle":
+            scale = self.scale_fn(cycle)
+        else:
+            scale = self.scale_fn(iterations)
 
-        return [lr] * len(self.optimizer.param_groups)
+        return self.base_lr * base_height * scale
+        # return [lr * base_height * scale  for lr in self.base_lr]

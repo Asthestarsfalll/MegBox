@@ -60,26 +60,26 @@ def exchang_axes(x: Tensor, axis0: int, axis1: int):
 
 
 # TODO:
-def sliding_window_transpose(
-    x: Tensor,
-    output_size: Union[int, Tuple[int, int]],
-    kernel_size: Union[int, Tuple[int, int]],
-    padding: Union[int, Tuple[int, int]] = 0,
-    stride: Union[int, Tuple[int, int]] = 1,
-    dilation: Union[int, Tuple[int, int]] = 1,
-) -> Tensor:
-    # [N, C * kh * kw, H*W] or [C * kh * kw, H*W]
-    if x.ndim == 3:
-        # [1, C * kh * kw, H*W]
-        x = F.expand_dims(x, axis=1)
-    N, S, L = x.shape
-    # N, C, H, W, kh, kw
-    x = x.reshape(
-        N,
-    )
-    return F.sliding_window_transpose(
-        x, output_size, kernel_size, padding, stride, dilation
-    )
+# def sliding_window_transpose(
+#     x: Tensor,
+#     output_size: Union[int, Tuple[int, int]],
+#     kernel_size: Union[int, Tuple[int, int]],
+#     padding: Union[int, Tuple[int, int]] = 0,
+#     stride: Union[int, Tuple[int, int]] = 1,
+#     dilation: Union[int, Tuple[int, int]] = 1,
+# ) -> Tensor:
+#     # [N, C * kh * kw, H*W] or [C * kh * kw, H*W]
+#     if x.ndim == 3:
+#         # [1, C * kh * kw, H*W]
+#         x = F.expand_dims(x, axis=1)
+#     N, S, L = x.shape
+#     # N, C, H, W, kh, kw
+#     x = x.reshape(
+#         N,
+#     )
+#     return F.sliding_window_transpose(
+#         x, output_size, kernel_size, padding, stride, dilation
+#     )
 
 
 def expand_dims_with_repeat(

@@ -1,1 +1,2 @@
-from ...reparam.rep_conv import RepConv2d, RepLargeKernelConv2d  # noqa: F401
+from ...reparam.rep_conv import (  # noqa: F401  #  pylint: disable=unused-import
+    RepConv2d, RepLargeKernelConv2d)

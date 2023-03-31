@@ -97,16 +97,11 @@ class AdaptivePool2d(M.Module):
         oshp: Union[int, Tuple[int, int]],
         func: Callable,
     ) -> None:
-        super(AdaptivePool2d, self).__init__()
+        super().__init__()
         if isinstance(oshp, int):
             oshp = (oshp, oshp)
         self.oshp = oshp
         self.func = func
-
-    def _calculate_kernel_size(self, ishp):
-        kh = (ishp[0] + self.oshp[0] - 1) // self.oshp[0]
-        kw = (ishp[1] + self.oshp[1] - 1) // self.oshp[1]
-        return (kh, kw)
 
     @staticmethod
     def _zip(*x):
@@ -122,7 +117,7 @@ class AdaptivePool2d(M.Module):
             out.append(temp)
         return out
 
-    def _get_points(self, input_size, kernel_size):
+    def _get_points(self, input_size):
         start_points_h = (
             F.arange(self.oshp[0], dtype="float32") * (input_size[0] / self.oshp[0])
         ).astype("int32")
@@ -156,8 +151,7 @@ class AdaptivePool2d(M.Module):
     def forward(self, inputs: Tensor) -> Tensor:
         assert inputs.ndim == 4, "Currently only support 4D input"
         ishp = inputs.shape[-2:]
-        kernel_size = self._calculate_kernel_size(ishp)
-        point_h, point_w = self._get_points(ishp, kernel_size)
+        point_h, point_w = self._get_points(ishp)
         windows = self._get_windows(inputs, (point_h, point_w))
         return windows.reshape(*windows.shape[:2], *self.oshp)
 

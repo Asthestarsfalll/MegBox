@@ -9,7 +9,7 @@ from ..functional.tensor import pad
 
 def zero_padding(x: Tensor, pad_size: int) -> Tensor:
     if x is None:
-        return 0
+        return Tensor(0)
     if pad_size == 0:
         return x
     return pad(x, (pad_size,) * 4)

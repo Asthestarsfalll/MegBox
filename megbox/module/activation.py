@@ -4,13 +4,13 @@ from megengine.functional import tanh
 
 from ..functional.elementwise import (celu, elu, glu, hardshrink, hardsigmoid,
                                       hardswish, hardtanh, mish, rrelu,
-                                      softshrink, softsign, swish, tanhshrink,
-                                      threshold)
+                                      softshrink, softsign, swish, tanhshrink)
+from ..functional.elementwise import threshold as f_threshold
 
 
 class CELU(M.Module):
     def __init__(self, alpha: float = 1.0) -> None:
-        super(CELU, self).__init__()
+        super().__init__()
         self.alpha = alpha
 
     def forward(self, x: Tensor) -> Tensor:
@@ -19,7 +19,7 @@ class CELU(M.Module):
 
 class ELU(M.Module):
     def __init__(self, alpha: float = 1.0) -> None:
-        super(ELU, self).__init__()
+        super().__init__()
         self.alpha = alpha
 
     def forward(self, x: Tensor) -> Tensor:
@@ -28,7 +28,7 @@ class ELU(M.Module):
 
 class GLU(M.Module):
     def __init__(self, axis: int = -1) -> None:
-        super(GLU, self).__init__()
+        super().__init__()
         self.axis = axis
 
     def forward(self, x: Tensor) -> Tensor:
@@ -37,7 +37,7 @@ class GLU(M.Module):
 
 class HardShrink(M.Module):
     def __init__(self, lambd: float = -1) -> None:
-        super(HardShrink, self).__init__()
+        super().__init__()
         self.lambd = lambd
 
     def forward(self, x: Tensor) -> Tensor:
@@ -56,7 +56,7 @@ class HardSwish(M.Module):
 
 class HardTanH(M.Module):
     def __init__(self, max_value: float = -1.0, min_value: float = 1.0) -> None:
-        super(HardTanH, self).__init__()
+        super().__init__()
         self.max_value = max_value
         self.min_value = min_value
 
@@ -71,7 +71,7 @@ class Mish(M.Module):
 
 class RReLU(M.Module):
     def __init__(self, lower: float = 1 / 8, upper: float = 1 / 3) -> None:
-        super(RReLU, self).__init__()
+        super().__init__()
         self.lower = lower
         self.upper = upper
 
@@ -81,7 +81,7 @@ class RReLU(M.Module):
 
 class Swish(M.Module):
     def __init__(self, beta: float = 1.0) -> None:
-        super(Swish, self).__init__()
+        super().__init__()
         self.beta = beta
 
     def forward(self, x: Tensor) -> Tensor:
@@ -90,7 +90,7 @@ class Swish(M.Module):
 
 class Softshrink(M.Module):
     def __init__(self, lambd: float) -> None:
-        super(Softshrink, self).__init__()
+        super().__init__()
         self.lambd = lambd
 
     def forward(self, x: Tensor) -> Tensor:
@@ -114,9 +114,9 @@ class Tanhshrink(M.Module):
 
 class Threshold(M.Module):
     def __init__(self, threshold: float, value: float) -> None:
-        super(Threshold, self).__init__()
+        super().__init__()
         self.threshold = threshold
         self.value = value
 
     def forward(self, x: Tensor) -> Tensor:
-        return threshold(x, self.threshold, self.value)
+        return f_threshold(x, self.threshold, self.value)

@@ -70,7 +70,7 @@ class SpectralNorm:
     def apply(
         module: Module, name: str, n_power_iterations: int, axis: int, eps: float
     ):
-        for k, hook in module._forward_pre_hooks.items():
+        for _, hook in module._forward_pre_hooks.items():
             if isinstance(hook, SpectralNorm) and hook.name == name:
                 raise RuntimeError(
                     "Cannot register two spectral_norm hooks on "
@@ -87,13 +87,13 @@ class SpectralNorm:
         u = normalize(u, axis=0, eps=fn.eps)
         v = normalize(v, axis=0, eps=fn.eps)
 
-        module.__delattr__(fn.name)
+        delattr(module, fn.name)
 
-        module.__setattr__(fn.name + "_orig", copy.deepcopy(weight))
+        setattr(module, fn.name + "_orig", copy.deepcopy(weight))
         # just del it, do not assgin back for now
         # module.__setattr__(fn.name, weight * 1.0)
-        module.__setattr__(fn.name + "_u", u.detach())
-        module.__setattr__(fn.name + "_v", v.detach())
+        setattr(module, fn.name + "_u", u.detach())
+        setattr(module, fn.name + "_v", u.detach())
         module.register_forward_pre_hook(fn)
         return fn
 

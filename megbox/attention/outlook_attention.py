@@ -22,7 +22,7 @@ class OutlookAttention(M.Module):
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
     ) -> None:
-        super(OutlookAttention, self).__init__()
+        super().__init__()
         head_dim = dim // num_heads
         self.num_heads = num_heads
         self.kernel_size = kernel_size

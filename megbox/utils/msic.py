@@ -28,3 +28,23 @@ def is_list_of(seq, expected_type):
 
 def is_tuple_of(seq, expected_type):
     return is_seq_of(seq, expected_type, seq_type=tuple)
+
+
+def add_doc(doc: str):
+    """Use as a decorator"""
+
+    def _warpper_func(target):
+        target.__doc__ = doc
+        return target
+
+    return _warpper_func
+
+
+def borrow_doc(origin):
+    """Use as a decorator"""
+
+    def _warpper_func(target):
+        target.__doc__ = origin.__doc__
+        return target
+
+    return _warpper_func

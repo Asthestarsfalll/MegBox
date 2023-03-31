@@ -9,7 +9,7 @@ from megengine.functional import (broadcast_to, concat, dropout, full, linear,
                                   where, zeros)
 
 
-def multi_head_attention(
+def multi_head_attention(  # pylint: disable=too-many-statements, too-many-branches
     query: Tensor,
     key: Optional[Tensor],
     value: Optional[Tensor],
@@ -176,7 +176,7 @@ class MultiheadAttention(M.Module):
         kdim: Optional[int] = None,
         vdim: Optional[int] = None,
     ) -> None:
-        super(MultiheadAttention, self).__init__()
+        super().__init__()
         self.embed_dim = embed_dim
         self.drop_out = drop_out
         self.out_dropout = out_dropout
@@ -195,7 +195,9 @@ class MultiheadAttention(M.Module):
             self.in_proj = M.Linear(embed_dim, 3 * embed_dim, bias=bias)
         else:
             raise NotImplementedError()
-            self.q_proj = M.Linear(embed_dim, embed_dim, bias=bias)
+            self.q_proj = M.Linear(
+                embed_dim, embed_dim, bias=bias
+            )  # pylint: disable=unreachable
             self.k_proj = M.Linear(embed_dim, self.kdim, bias=bias)
             self.v_proj = M.Linear(embed_dim, self.vdim, bias=bias)
 

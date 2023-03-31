@@ -1,6 +1,6 @@
 from typing import Optional
 
-from megengine.functional import flatten
+import megengine.functional as F
 from megengine.module import Conv2d, Identity, Module
 
 from ..utils.msic import to_2tuple
@@ -16,7 +16,7 @@ class PatchEmbed(Module):
         norm_layer: Optional[Module] = None,
         flatten=True,
     ):
-        super(PatchEmbed, self).__init__()
+        super().__init__()
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
         self.img_size = img_size
@@ -31,12 +31,12 @@ class PatchEmbed(Module):
         self.norm = norm_layer(embed_dim) if norm_layer else Identity()
 
     def forward(self, x):
-        B, C, H, W = x.shape
+        _, _, H, W = x.shape
         assert (
             H == self.img_size[0] and W == self.img_size[1]
         ), f"Input image size does not match, expected {self.img_size}, got {(H, W)}"
         x = self.proj(x)
         if self.flatten:
-            x = flatten(x, 2).transpose(0, 2, 1)  # BCHW -> BNC
+            x = F.flatten(x, 2).transpose(0, 2, 1)  # BCHW -> BNC
         x = self.norm(x)
         return x

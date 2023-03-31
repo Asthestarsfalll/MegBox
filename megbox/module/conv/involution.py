@@ -16,7 +16,7 @@ class Involution(Module):
         reduction: int = 4,
         group_channels: int = 16,
     ) -> None:
-        super(Involution, self).__init__()
+        super().__init__()
         self.kernel_size = kernel_size
         self.group_channels = group_channels
         self.groups = channels // group_channels
@@ -35,7 +35,7 @@ class Involution(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         weight = self.conv2(self.conv1(self.avgpool(x)))
-        b, c, h, w = weight.shape
+        b, _, h, w = weight.shape
         weight = weight.reshape(b, self.groups, self.kernel_size**2, h, w)
         weight = expand_dims(weight, 2)
 

@@ -31,7 +31,7 @@ class ChannelAttention(M.Sequential):
 
         modules.append(("fc_final", M.Linear(inner_chan, in_channels)))
 
-        super(ChannelAttention, self).__init__(OrderedDict(modules))
+        super().__init__(OrderedDict(modules))
 
 
 class SpatialAttention(M.Sequential):
@@ -66,7 +66,7 @@ class SpatialAttention(M.Sequential):
 
         modules.append(("conv_final", M.Conv2d(inner_chan, 1, 1)))
 
-        super(SpatialAttention, self).__init__(OrderedDict(modules))
+        super().__init__(OrderedDict(modules))
 
 
 class BAMBlock(M.Module):
@@ -77,7 +77,7 @@ class BAMBlock(M.Module):
         dilations: Union[int, Sequence[int]] = 4,
         num_layers: int = 1,
     ) -> None:
-        super(BAMBlock, self).__init__()
+        super().__init__()
         self.sa = SpatialAttention(in_channels, reduction, dilations)
         self.ca = ChannelAttention(in_channels, reduction, num_layers)
 
