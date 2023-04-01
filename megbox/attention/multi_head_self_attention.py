@@ -195,9 +195,9 @@ class MultiheadAttention(M.Module):
             self.in_proj = M.Linear(embed_dim, 3 * embed_dim, bias=bias)
         else:
             raise NotImplementedError()
-            self.q_proj = M.Linear(
+            self.q_proj = M.Linear(  # pylint: disable=unreachable
                 embed_dim, embed_dim, bias=bias
-            )  # pylint: disable=unreachable
+            )
             self.k_proj = M.Linear(embed_dim, self.kdim, bias=bias)
             self.v_proj = M.Linear(embed_dim, self.vdim, bias=bias)
 

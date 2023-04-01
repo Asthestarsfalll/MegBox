@@ -10,7 +10,7 @@ from megengine.module.pooling import MaxPool2d as MgeMaxPool2d
 from megengine.module.pooling import _PoolNd
 
 from megbox.functional.tensor import pad
-from megbox.types import pooling_type
+from megbox.types import Pool
 from megbox.utils.msic import borrow_doc
 
 __all__ = [
@@ -31,7 +31,7 @@ def _calculate_pad_size(
     return (pad_h, pad_w)
 
 
-def with_ceil_mode(pool: pooling_type, value: float, **kwargs) -> _PoolNd:
+def with_ceil_mode(pool: Pool, value: float, **kwargs) -> _PoolNd:
     module = pool(**kwargs)
     mode = "reflect" if value == 0 else "constant"
     if value == 0:

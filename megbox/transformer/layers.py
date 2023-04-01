@@ -54,7 +54,7 @@ class LayerScale(Module):
         init_values: float = 1e-5,
     ) -> None:
         super().__init__()
-        self.gamma = Parameter(init_values * F.ones([dim]))
+        self.gamma = Parameter(init_values * F.ones((dim)))
 
     def forward(self, x: Tensor) -> Tensor:
         return x * self.gamma
