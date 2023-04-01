@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "megbox"
+version = "0.1.1"
+description = "MegBox is an easy-to-use, well-rounded and safe toolbox of MegEngine. Aim to imporving usage experience and speeding up develop process."
+authors = ["Asthestarsfalll <1186454801@qq.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.21.0"
+opencv-python = "^4.5.3.56"
+# megengine = "^1.8.0"
+seaborn = "^0.12.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
