@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Callable, Dict, List, Sequence, Union
 
 import megengine as mge
@@ -37,7 +38,7 @@ def _test_modules(
         for name in names:
             names.set_description("test module {}".format(name))
             module_classes = [mapper[name] for mapper in module_mappers]
-            _default = kwargs_mappers[0][name]
+            _default = deepcopy(kwargs_mappers[0][name])
             kwargs_lists = [mapper.get(name, _default) for mapper in kwargs_mappers]
             if len(module_classes) == 1:
                 module_classes = module_classes[0]
@@ -53,6 +54,7 @@ def _test_modules(
                         sp_size=sp_size,
                         is_gpu=is_gpu,
                     )
+                del kwargs
 
     if mge.is_cuda_available():
         run(True)
