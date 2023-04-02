@@ -1,11 +1,8 @@
-
-
 ![logo](logo.png)
 
 ## Introduction
 
-`MegBox` is a easy-use, well-rounded and safe toolbox of `MegEngine`. Aim to imporving usage experience and speeding up develop process.
-
+`MegBox` is an easy-to-use, well-rounded and safe toolbox of MegEngine. Aim to imporving usage experience and speeding up develop process.
 
 
 `MegBox` is still in an early development stage.
@@ -14,132 +11,177 @@
 
 ### easy_use
 
-Easily generate tensor:
+<details>
+  <summary>Easily generate tensor</summary>
 
-```python
-from megbox import easy_use
+  ```python
+  from megbox import easy_use
 
-x = easy_use.randn(2, 3, 4, 5, 6)
-```
+  x = easy_use.randn(2, 3, 4, 5, 6)
+  ```
 
-Easily pad:
+</details>
 
-```python
-y1 = F.nn.pad(x, [(0, 0), (0, 0), (0, 0), (0, 1), (1, 0)])
-y2 = easy_use.pad(x, [1, 0, 0, 1])
 
-print(easy_use.all(y1 == y2))
-```
+<details>
+  <summary>Easily pad</summary>
 
-Easily exchang axes:
+  ```python
+  y1 = F.nn.pad(x, [(0, 0), (0, 0), (0, 0), (0, 1), (1, 0)])
+  y2 = easy_use.pad(x, [1, 0, 0, 1])
 
-```python
-y1 = x.transpose(0, 1, 2, 4, 3)
-y2 = easy_use.exchang_axes(x, -2, -1)
+  print(easy_use.all(y1 == y2))
+  ```
 
-print(easy_use.all(y1 == y2))
-```
+</details>
 
-Easily use where:
 
-```python
-# use number in where
-y1 = F.where(x > 0, x, mge.tensor(0))
-y2 = easy_use.where(x > 0, x, 0)
+<details>
+  <summary>Easily exchang axes</summary>
 
-print(easy_use.all(y1 == y2))
-```
+  ```python
+  y1 = x.transpose(0, 1, 2, 4, 3)
+  y2 = easy_use.exchang_axes(x, -2, -1)
 
-More details can be found in documents(will be supported as soon as possible).
+  print(easy_use.all(y1 == y2))
+  ```
+
+</details>
+
+
+<details>
+  <summary>Easily use where</summary>
+
+  ```python
+  # use number in where
+  y1 = F.where(x > 0, x, mge.tensor(0))
+  y2 = easy_use.where(x > 0, x, 0)
+
+  print(easy_use.all(y1 == y2))
+  ```
+
+</details>
+
 
 ### well-rounded
 
-Support Pooling with ceil mode:
+<details>
+  <summary>Support Pooling with ceil mode</summary>
 
-```python
-from megbox.module import AvgPool2d, MaxPool2d
+  ```python
+  from megbox.module import AvgPool2d, MaxPool2d
 
-module = AvgPool2d(
-    kernel_size=2,
-    ceil_mode=True,
-)
+  module = MaxPool2d(
+      kernel_size=2,
+      ceil_mode=True,
+  )
 
-module = MaxPool2d(
-    kernel_size=2,
-    ceil_mode=True,
-)
-```
+  # Note: Use an approximate implementation, which may cause some problem.
+  module = AvgPool2d(
+      kernel_size=2,
+      ceil_mode=True,
+  )
+  ```
 
-Be aligned with torch's implementation:
+</details>
 
-```python
-from megbox.module import AdaptiveAvgPool2D, AdaptiveMaxPool2D
 
-module = AdaptiveAvgPool2D(7)
+<details>
+  <summary>Be aligned with torch's implementation</summary>
 
-module = AdaptiveMaxPool2D(3)
-```
+  ```python
+  from megbox.module import AdaptiveAvgPool2d, AdaptiveMaxPool2d
 
-Commonly used attention block:
+  module = AdaptiveAvgPool2d(7)
 
-```python
-from megbox import attention
+  module = AdaptiveMaxPool2d(3)
+  ```
 
-se = attention.SEBlock(in_channels=64, reduction=16)
-```
+</details>
 
-Some kinds of convolution variants:
 
-```python
-from megbox import conv
+<details>
+  <summary>Commonly used attention block</summary>
 
-involution = conv.Involution(channels=64, kernel_size=11, stride=1)
-```
+  ```python
+  from megbox import attention
 
-Further support for reparameterization convolution with dilation:
+  print(attention.__all__)
+  se = attention.SEBlock(in_channels=64, reduction=16)
+  ```
 
-```python
-from megbox.reparam import RepConv2d, RepLargeKernelConv2d
+</details>
 
-rep_conv = RepConv2d(32, 32, dilation=(1, 2))
-rep_lk_conv = RepLargeKernelConv2d(
-    channels=32,
-    kernel_size=11,
-    small_kernel_size=(5, 1),
-    dilation=2,
-)
 
-rep_conv.switch_to_deploy()
-rep_lk_conv.switch_to_deploy()
-```
+<details>
+  <summary>Some kinds of convolution variants</summary>
 
-Visualize the reparameterization process:
+  ```python
+  from megbox import conv
 
-```python
-from megbox.reparam import visualize
+  print(conv.__al__)
+  involution = conv.Involution(channels=64, kernel_size=11, stride=1)
+  ```
 
-visualize(kernel_sizes=(7, 5, 3), dilations=(2, 3, 1), save_dir='./')
-```
+</details>
 
+
+<details>
+  <summary>Further support for reparameterization convolution with dilation</summary>
+
+  ```python
+  from megbox.reparam import RepConv2d, RepLargeKernelConv2d
+
+  rep_conv = RepConv2d(32, 32, dilation=(1, 2))
+  rep_lk_conv = RepLargeKernelConv2d(
+      channels=32,
+      kernel_size=11,
+      small_kernel_size=(5, 1),
+      dilation=2,
+  )
+
+  rep_conv.switch_to_deploy()
+  rep_lk_conv.switch_to_deploy()
+  ```
+
+</details>
+
+<details>
+  <summary>Visualize the reparameterization process</summary>
+
+  ```python
+  from megbox.reparam import visualize
+
+  visualize(kernel_sizes=(7, 5, 3), dilations=(2, 3, 1), save_dir='./')
+  ```
+
+</details>
 
 
 ### safe
 
-Safely sort with NaN:
 
-```python
-import megengine.functional as F
-from megbox.functional.safe import sort
-import megengine as mge
+<details>
+  <summary>Safely sort with NaN</summary>
 
-x = mge.tensor([3., 4., 2., float("NaN"), 1., 2., float("NaN")])
+  ```python
+  import megengine.functional as F
+  from megbox.functional.safe import sort
+  import megengine as mge
 
-# can not return corrct result
-y1 = F.sort(x)
-y2 = sort(x)
-```
+  x = mge.tensor([3., 4., 2., float("NaN"), 1., 2., float("NaN")])
+
+  # can not return corrct result
+  y1 = F.sort(x)
+  y2 = sort(x)
+  ```
+
+</details>
+
 
 ## Details
+
+**More details can be found in documents(will be supported as soon as possible).**
 
 TODO:
 
