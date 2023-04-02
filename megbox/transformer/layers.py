@@ -2,10 +2,12 @@ from typing import Optional
 
 import megengine.functional as F
 from megengine import Parameter, Tensor
-from megengine.module import GELU, Dropout, Identity, LayerNorm, Linear, Module
+from megengine.module import GELU, Identity, LayerNorm, Module
 
-from ..attention.multi_head_self_attention import MultiheadAttention
-from ..module.drop_path import DropPath
+from megbox.attention.multi_head_self_attention import MultiheadAttention
+from megbox.block.mlp import Mlp
+from megbox.module.drop_path import DropPath
+from megbox.types import ModuleType
 
 
 def top_k_top_p_filtering(
@@ -60,32 +62,6 @@ class LayerScale(Module):
         return x * self.gamma
 
 
-class Mlp(Module):
-    def __init__(
-        self,
-        in_features: int,
-        hidden_features: Optional[int] = None,
-        out_features: Optional[int] = None,
-        act_layer: Module = GELU,
-        drop: float = 0.0,
-    ) -> None:
-        super().__init__()
-        out_features = out_features or in_features
-        hidden_features = hidden_features or in_features
-        self.fc1 = Linear(in_features, hidden_features)
-        self.act = act_layer()
-        self.fc2 = Linear(hidden_features, out_features)
-        self.drop = Dropout(drop)
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x)
-        return x
-
-
 class Block(Module):
     def __init__(
         self,
@@ -98,8 +74,8 @@ class Block(Module):
         attn_out_drop: float = 0.0,
         init_values: Optional[float] = None,
         drop_path: float = 0.0,
-        act_layer: Module = GELU,
-        norm_layer: Module = LayerNorm,
+        act_layer: ModuleType = GELU,
+        norm_layer: ModuleType = LayerNorm,
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)

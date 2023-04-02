@@ -45,6 +45,20 @@ REPS_KWAGS = dict(
 )
 
 
+def _check_deploy(module):
+    assert module.is_deploy
+    if isinstance(module, RepConv2d):
+        name_fields = ["large", "small", "identity", "bn_identity"]
+    else:
+        name_fields = [
+            f"dw_small_{idx}_{i}" for idx, i in enumerate(module.small_kernel_size)
+        ]
+        name_fields.append("dw_large")
+
+    for name in name_fields:
+        assert not hasattr(module, name)
+
+
 def test_reparams():
     batch_size = 2
     spatial_sizes = [64, 128]
@@ -68,7 +82,7 @@ def test_reparams():
         y = module(x).numpy()
 
         module.switch_to_deploy()
-        assert module.is_deploy
+        _check_deploy(module)
 
         y1 = module(x).numpy()
 

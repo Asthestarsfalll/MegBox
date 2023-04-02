@@ -3,8 +3,10 @@ from typing import Callable, Dict, List, Sequence, Union
 
 import megengine as mge
 import megengine.module as M
-from megengine.module import Module, init
+from megengine.module import init
 from tqdm import tqdm
+
+from megbox.types import ModuleType
 
 
 def _init_weights(m):
@@ -19,11 +21,8 @@ def _init_weights(m):
         m.running_var = mge.functional.full_like(m.running_var, 0.1)
 
 
-MODULE_TYPE = type(Module)
-
-
 def _test_modules(
-    module_mappers: Union[Dict[str, MODULE_TYPE], List[Dict[str, MODULE_TYPE]]],
+    module_mappers: Union[Dict[str, ModuleType], List[Dict[str, ModuleType]]],
     kwargs_mappers: Union[Dict[str, List], List[Dict[str, List]]],
     spatial_sizes: Sequence[int],
     check_func: Callable,

@@ -1,18 +1,17 @@
+import math
 from typing import List, Optional, Sequence, Tuple, Union
 
 import megengine as mge
 import megengine.functional as F
+import numpy as np
 from megengine import Tensor
 
 from megbox.types import Number
 from megbox.utils import (assert_no_kwargs, handle_negtive_aixs, handle_number,
                           index_cast, to_1tuple)
 
-
-@assert_no_kwargs
-@index_cast(handle_number, (1, 2))
-def where(mask: Tensor, x: Union[Tensor, Number], y: Union[Tensor, Number]) -> Tensor:
-    return F.where(mask, x, y)
+where = assert_no_kwargs(index_cast(handle_number, (1, 2))(F.where))
+pow = assert_no_kwargs(index_cast(handle_number, (0, 1))(F.pow))
 
 
 def pad(
@@ -126,8 +125,18 @@ def differentiable_topk(x: Tensor, k: Tensor, temperature: float = 1.0) -> Tenso
     return F.sum(topks.reshape(n, k, dim), axis=1)
 
 
-def randn(*shape: Tuple[int], device: Optional[str] = None) -> Tensor:
+def randn(*shape: Tuple[int, ...], device: Optional[str] = None) -> Tensor:
     out = mge.random.normal(0, 1, shape)
     if device is not None:
         out = out.to(device)
     return out
+
+
+def split(x: Tensor, split_size_or_sections: Union[int, Sequence[int]], axis: int = 0):
+    if isinstance(split_size_or_sections, int):
+        nsplits_or_sections = math.floor(x.shape[axis] / split_size_or_sections)
+    else:
+        nsplits_or_sections = np.cumsum(split_size_or_sections).tolist()
+        nsplits_or_sections.pop()
+        print(nsplits_or_sections)
+    return F.split(x, nsplits_or_sections, axis)

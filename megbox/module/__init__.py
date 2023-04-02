@@ -3,6 +3,7 @@ from .activation import (CELU, ELU, GLU, HardShrink, HardSigmoid, HardSwish,
                          Tanh, Tanhshrink, Threshold)
 from .drop_path import DropPath
 from .init import trunc_normal_
+from .layer_norm import LayerNorm
 from .pooling import AdaptiveAvgPool2d, AdaptiveMaxPool2d, AvgPool2d, MaxPool2d
 
 __all__ = [
@@ -27,4 +28,5 @@ __all__ = [
     "Threshold",
     "DropPath",
     "trunc_normal_",
+    "LayerNorm",
 ]

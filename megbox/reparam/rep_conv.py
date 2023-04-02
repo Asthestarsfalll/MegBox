@@ -198,7 +198,10 @@ class RepLargeKernelConv2d(Module):
         if isinstance(dilation, int):
             dilation = [dilation] * (len(small_kernel_size) + 1)
         elif len(dilation) != (len(small_kernel_size) + 1):
-            raise ValueError()
+            raise ValueError(
+                "Expected length of `dilation` to equals "
+                "length of `samll_kernel_size` + 1"
+            )
 
         self.small_kernel_size = small_kernel_size
         self.dilation = dilation
@@ -226,13 +229,13 @@ class RepLargeKernelConv2d(Module):
                 bias=bias,
             )
 
-            for k, d in zip(small_kernel_size, dilation[1:]):
+            for idx, (k, d) in enumerate(zip(small_kernel_size, dilation[1:])):
                 if k > kernel_size:
                     raise ValueError(
                         "`small_kernel_size` muse be smaller than `kernel_size`"
                     )
                 self.__setattr__(
-                    f"dw_small_{k}",
+                    f"dw_small_{idx}_{k}",
                     ConvBn2d(
                         channels,
                         channels,
@@ -251,8 +254,8 @@ class RepLargeKernelConv2d(Module):
         if self.is_deploy:
             return self.reparam(x)
         out = self.dw_large(x)
-        for k in self.small_kernel_size:
-            out += getattr(self, f"dw_small_{k}")(x)
+        for idx, k in enumerate(self.small_kernel_size):
+            out += getattr(self, f"dw_small_{idx}_{k}")(x)
         return out
 
     def _get_equivalent_kernel_size(self) -> List[int]:
@@ -267,11 +270,11 @@ class RepLargeKernelConv2d(Module):
             return
 
         kernel_bias_pairs = [self.dw_large._get_equivalent_kernel_bias()]
-        for k in self.small_kernel_size:
+        for idx, k in enumerate(self.small_kernel_size):
             kernel_bias_pairs.append(
-                getattr(self, f"dw_small_{k}")._get_equivalent_kernel_bias()
+                getattr(self, f"dw_small_{idx}_{k}")._get_equivalent_kernel_bias()
             )
-            delattr(self, f"dw_small_{k}")
+            delattr(self, f"dw_small_{idx}_{k}")
 
         kernel_sizes = self._get_equivalent_kernel_size()
         kernels = [p[0] for p in kernel_bias_pairs]

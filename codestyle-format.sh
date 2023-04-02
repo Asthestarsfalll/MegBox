@@ -7,7 +7,7 @@ format() {
     py_files=$(find $path -name '*.py')
     target="__init__.py"
     black $py_files
-    isort $py_files
+    isort $py_files -q
     autoflake -r --in-place --remove-unused-variables $py_files
     if [ $check = true ]; then
         pylint $py_files --rcfile=.pylintrc || pylint_ret=$?
