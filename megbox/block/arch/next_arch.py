@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from megengine import Parameter, Tensor
@@ -11,7 +12,7 @@ from megbox.types import ModuleType
 __all__ = ["NeXtArch"]
 
 
-class NeXtArch(M.Module):
+class NeXtArch(M.Module, metaclass=ABCMeta):
     ChannelFirst = 0
     ChannelLast = 1
 
@@ -48,6 +49,7 @@ class NeXtArch(M.Module):
                 f"{self.__class__.__name__}.`ChannelLast`"
             )
 
+    @abstractmethod
     def _build_token_mixer(self) -> M.Module:
         raise NotImplementedError()
 

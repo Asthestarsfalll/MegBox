@@ -1,5 +1,4 @@
 import functools
-from abc import ABCMeta, abstractmethod
 
 from megengine import module as M
 
@@ -10,7 +9,7 @@ from .arch.next_arch import NeXtArch
 __all__ = ["ConvNeXtBlock"]
 
 
-class ConvNeXtBlock(NeXtArch, metaclass=ABCMeta):
+class ConvNeXtBlock(NeXtArch):
     r"""
     ConvNeXt Block. There are two equivalent implementations:
     (1) DwConv -> LayerNorm (channels_first) -> 1x1 Conv ->
@@ -48,6 +47,5 @@ class ConvNeXtBlock(NeXtArch, metaclass=ABCMeta):
             implementation,
         )
 
-    @abstractmethod
     def _build_token_mixer(self):
         return M.Conv2d(self.dim, self.dim, kernel_size=7, padding=3, groups=self.dim)
