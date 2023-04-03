@@ -160,7 +160,7 @@ def multi_head_attention(  # pylint: disable=too-many-statements, too-many-branc
     if need_weights:
         return attn_output, attn_output_weights
     else:
-        return attn_output, None
+        return attn_output
 
 
 class MultiheadAttention(M.Module):
@@ -224,7 +224,8 @@ class MultiheadAttention(M.Module):
                 M.init.zeros_(self.q_proj.bias)
                 M.init.zeros_(self.k_proj.bias)
                 M.init.zeros_(self.v_proj.bias)
-        M.init.zeros_(self.out_proj.bias)
+        if self.out_proj.bias is not None:
+            M.init.zeros_(self.out_proj.bias)
 
     def forward(
         self,

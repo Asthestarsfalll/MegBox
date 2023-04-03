@@ -48,3 +48,10 @@ def borrow_doc(origin):
         return target
 
     return _warpper_func
+
+
+def hack_module(self):
+    self._modules = []
+    self.name = None
+    self._name = None
+    self._short_name = None

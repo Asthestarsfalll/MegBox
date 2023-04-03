@@ -21,24 +21,16 @@ class InceptionDWConv2d(SplitConcatConv2d):
 
     def _build_split_convs(self):
         gc = int(self.in_channels * self.branch_ratio)
-        square_kernel_size, band_kernel_size = self.kernel_sizes
+        sk, bk = self.kernel_sizes
         convs = [
             M.Identity(),
-            M.Conv2d(
-                gc, gc, square_kernel_size, padding=square_kernel_size // 2, groups=gc
-            ),
-            M.Conv2d(
-                gc,
-                gc,
-                kernel_size=(1, band_kernel_size),
-                padding=(0, band_kernel_size // 2),
-                groups=gc,
-            ),
+            M.Conv2d(gc, gc, sk, padding=sk // 2, groups=gc),
+            M.Conv2d(gc, gc, kernel_size=(1, bk), padding=(0, bk // 2), groups=gc),
             M.Conv2d(
                 gc,
                 gc,
-                kernel_size=(band_kernel_size, 1),
-                padding=(band_kernel_size // 2, 0),
+                kernel_size=(bk, 1),
+                padding=(bk // 2, 0),
                 groups=gc,
             ),
         ]
@@ -54,6 +46,7 @@ class InceptionNeXtBlock(NeXtArch):
         self,
         dim: int,
         drop_path: float = 0.0,
+        dropout_ratio: float = 0.0,
         mlp_expansion: float = 4.0,
         layer_scale_init_value: float = 1e-6,
         norm_layer: Optional[ModuleType] = M.BatchNorm2d,
@@ -62,6 +55,7 @@ class InceptionNeXtBlock(NeXtArch):
         super().__init__(
             dim,
             drop_path,
+            dropout_ratio,
             mlp_expansion,
             layer_scale_init_value,
             norm_layer,

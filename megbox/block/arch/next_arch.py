@@ -20,6 +20,7 @@ class NeXtArch(M.Module, metaclass=ABCMeta):
         self,
         dim: int,
         drop_path: float = 0.0,
+        dropout_ratio: float = 0.0,
         mlp_expansion: float = 4,
         layer_scale_init_value: float = 1e-6,
         norm_layer: Optional[ModuleType] = None,
@@ -39,10 +40,20 @@ class NeXtArch(M.Module, metaclass=ABCMeta):
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else M.Identity()
         if implementation == NeXtArch.ChannelFirst:
             self.forward = self._forward_channel_first
-            self.mlp = ConvMlp(dim, int(dim * mlp_expansion), act_layer=act_layer)
+            self.mlp = ConvMlp(
+                dim,
+                int(dim * mlp_expansion),
+                act_layer=act_layer,
+                drop_ratio=dropout_ratio,
+            )
         elif implementation == NeXtArch.ChannelLast:
             self.forward = self._forward_channel_last
-            self.mlp = Mlp(dim, int(dim * mlp_expansion), act_layer=act_layer)
+            self.mlp = Mlp(
+                dim,
+                int(dim * mlp_expansion),
+                act_layer=act_layer,
+                drop_ratio=dropout_ratio,
+            )
         else:
             raise ValueError(
                 f"Expected {self.__class__.__name__}`.ChannelFirst` or "

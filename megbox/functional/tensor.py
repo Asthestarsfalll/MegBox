@@ -138,5 +138,4 @@ def split(x: Tensor, split_size_or_sections: Union[int, Sequence[int]], axis: in
     else:
         nsplits_or_sections = np.cumsum(split_size_or_sections).tolist()
         nsplits_or_sections.pop()
-        print(nsplits_or_sections)
     return F.split(x, nsplits_or_sections, axis)

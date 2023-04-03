@@ -1,13 +1,14 @@
 from typing import Optional
 
 import megengine.functional as F
-from megengine import Parameter, Tensor
-from megengine.module import GELU, Identity, LayerNorm, Module
+from megengine import Tensor
+from megengine.module import GELU, LayerNorm, Module
 
 from megbox.attention.multi_head_self_attention import MultiheadAttention
-from megbox.block.mlp import Mlp
-from megbox.module.drop_path import DropPath
+from megbox.block import Mlp
+from megbox.block.arch import TransformerArch
 from megbox.types import ModuleType
+from megbox.utils.msic import hack_module
 
 
 def top_k_top_p_filtering(
@@ -49,62 +50,49 @@ def top_k_top_p_filtering(
     return logits
 
 
-class LayerScale(Module):
+class TransformerBlock(TransformerArch):
     def __init__(
         self,
         dim: int,
-        init_values: float = 1e-5,
-    ) -> None:
-        super().__init__()
-        self.gamma = Parameter(init_values * F.ones((dim)))
-
-    def forward(self, x: Tensor) -> Tensor:
-        return x * self.gamma
-
-
-class Block(Module):
-    def __init__(
-        self,
-        dim: int,
-        num_heads: int,
-        mlp_ratio: float = 4.0,
-        qkv_bias: bool = False,
-        mlp_drop: float = 0.0,
-        attn_drop: float = 0.0,
-        attn_out_drop: float = 0.0,
+        num_heads: int,  # pylint: disable=unused-argument
+        mlp_ratio: float = 4.0,  # pylint: disable=unused-argument
+        qkv_bias: bool = False,  # pylint: disable=unused-argument
+        mlp_drop: float = 0.0,  # pylint: disable=unused-argument
+        attn_drop: float = 0.0,  # pylint: disable=unused-argument
+        attn_out_drop: float = 0.0,  # pylint: disable=unused-argument
         init_values: Optional[float] = None,
         drop_path: float = 0.0,
-        act_layer: ModuleType = GELU,
+        act_layer: ModuleType = GELU,  # pylint: disable=unused-argument
         norm_layer: ModuleType = LayerNorm,
     ) -> None:
-        super().__init__()
-        self.norm1 = norm_layer(dim)
-        self.attn = MultiheadAttention(
-            dim,
+        hack_module(self)
+        self.norm_layer = norm_layer
+        self.closure = locals()
+        super().__init__(dim, drop_path, init_values)
+        delattr(self, "closure")
+        delattr(self, "norm_layer")
+
+    def _get_closure_var(self, names):
+        return [self.closure[n] for n in names]
+
+    def _build_pre_norm(self) -> Optional[Module]:
+        return self.norm_layer(self.dim)
+
+    def _build_post_norm(self) -> Optional[Module]:
+        return self.norm_layer(self.dim)
+
+    def _build_mlp(self):
+        var_names = ["act_layer", "mlp_drop", "mlp_ratio"]
+        act_layer, mlp_drop, mlp_ratio = self._get_closure_var(var_names)
+        return Mlp(self.dim, int(self.dim * mlp_ratio), self.dim, act_layer, mlp_drop)
+
+    def _build_attention_module(self):
+        var_names = ["num_heads", "qkv_bias", "attn_drop", "attn_out_drop"]
+        num_heads, qkv_bias, attn_drop, attn_out_drop = self._get_closure_var(var_names)
+        return MultiheadAttention(
+            self.dim,
             num_heads=num_heads,
             bias=qkv_bias,
             drop_out=attn_drop,
             out_dropout=attn_out_drop,
         )
-        self.ls1 = (
-            LayerScale(dim, init_values=init_values) if init_values else Identity()
-        )
-        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
-        self.drop_path1 = DropPath(drop_path) if drop_path > 0.0 else Identity()
-
-        self.norm2 = norm_layer(dim)
-        self.mlp = Mlp(
-            in_features=dim,
-            hidden_features=int(dim * mlp_ratio),
-            act_layer=act_layer,
-            drop=mlp_drop,
-        )
-        self.ls2 = (
-            LayerScale(dim, init_values=init_values) if init_values else Identity()
-        )
-        self.drop_path2 = DropPath(drop_path) if drop_path > 0.0 else Identity()
-
-    def forward(self, x):
-        x = x + self.drop_path1(self.ls1(self.attn(self.norm1(x))))
-        x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
-        return x

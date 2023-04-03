@@ -1,5 +1,3 @@
-import random
-
 import megengine as mge
 from utils import _test_modules
 

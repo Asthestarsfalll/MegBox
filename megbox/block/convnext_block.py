@@ -32,6 +32,7 @@ class ConvNeXtBlock(NeXtArch):
         self,
         dim: int,
         drop_path: float = 0.0,
+        dropout_ratio: float = 0.0,
         mlp_expansion: float = 4,
         layer_scale_init_value: float = 1e-6,
         implementation: int = 1,
@@ -40,6 +41,7 @@ class ConvNeXtBlock(NeXtArch):
         super().__init__(
             dim,
             drop_path,
+            dropout_ratio,
             mlp_expansion,
             layer_scale_init_value,
             layer_norm,
