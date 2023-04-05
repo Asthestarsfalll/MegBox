@@ -11,3 +11,9 @@ __all__ = [
     "MultiPathConv2d",
     "TransformerArch",
 ]
+
+del mlp_arch
+del multi_path_conv
+del next_arch
+del split_concant_conv
+del transformer_arch

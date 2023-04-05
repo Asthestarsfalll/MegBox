@@ -1,10 +1,9 @@
-import megengine as mge
 from utils import _test_modules
 
 from megbox import easy_use
-from megbox.block import ConvNeXtBlock, InceptionNeXtBlock
+from megbox.block import ConvNeXtBlock, InceptionNeXtBlock, SegNextBlock
 
-BLOCKS = dict(convnext=ConvNeXtBlock, inceptionnext=InceptionNeXtBlock)
+BLOCKS = dict(convnext=ConvNeXtBlock, inceptionnext=InceptionNeXtBlock, segnext=SegNextBlock)
 
 BLOCK_KWARGS = dict(
     convnext=[
@@ -15,6 +14,10 @@ BLOCK_KWARGS = dict(
         dict(dim=64, drop_path=0.0, mlp_expansion=4.0),
         dict(dim=64, drop_path=0.1, mlp_expansion=3.0),
     ],
+    segnext=[
+        dict(dim=64, attention_kernel_sizes=[3, 5]),
+        dict(dim=64, attention_kernel_sizes=[3, 5, 7], drop_path=0.1),
+        ]
 )
 
 

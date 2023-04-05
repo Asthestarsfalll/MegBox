@@ -54,45 +54,31 @@ class TransformerBlock(TransformerArch):
     def __init__(
         self,
         dim: int,
-        num_heads: int,  # pylint: disable=unused-argument
-        mlp_ratio: float = 4.0,  # pylint: disable=unused-argument
-        qkv_bias: bool = False,  # pylint: disable=unused-argument
-        mlp_drop: float = 0.0,  # pylint: disable=unused-argument
-        attn_drop: float = 0.0,  # pylint: disable=unused-argument
-        attn_out_drop: float = 0.0,  # pylint: disable=unused-argument
+        num_heads: int,  
+        mlp_ratio: float = 4.0,  
+        qkv_bias: bool = False,  
+        mlp_drop: float = 0.0,  
+        attn_drop: float = 0.0,  
+        attn_out_drop: float = 0.0,  
         init_values: Optional[float] = None,
         drop_path: float = 0.0,
-        act_layer: ModuleType = GELU,  # pylint: disable=unused-argument
+        act_layer: ModuleType = GELU,  
         norm_layer: ModuleType = LayerNorm,
     ) -> None:
-        hack_module(self)
+        attention = MultiheadAttention(
+            dim,
+            num_heads=num_heads,
+            bias=qkv_bias,
+            drop_out=attn_drop,
+            out_dropout=attn_out_drop
+        )
+        mlp = Mlp(dim, int(dim * mlp_ratio), dim, act_layer, mlp_drop)
         self.norm_layer = norm_layer
-        self.closure = locals()
-        super().__init__(dim, drop_path, init_values)
-        delattr(self, "closure")
+        super().__init__(dim, attention, mlp, drop_path, init_values)
         delattr(self, "norm_layer")
-
-    def _get_closure_var(self, names):
-        return [self.closure[n] for n in names]
 
     def _build_pre_norm(self) -> Optional[Module]:
         return self.norm_layer(self.dim)
 
     def _build_post_norm(self) -> Optional[Module]:
-        return self.norm_layer(self.dim)
-
-    def _build_mlp(self):
-        var_names = ["act_layer", "mlp_drop", "mlp_ratio"]
-        act_layer, mlp_drop, mlp_ratio = self._get_closure_var(var_names)
-        return Mlp(self.dim, int(self.dim * mlp_ratio), self.dim, act_layer, mlp_drop)
-
-    def _build_attention_module(self):
-        var_names = ["num_heads", "qkv_bias", "attn_drop", "attn_out_drop"]
-        num_heads, qkv_bias, attn_drop, attn_out_drop = self._get_closure_var(var_names)
-        return MultiheadAttention(
-            self.dim,
-            num_heads=num_heads,
-            bias=qkv_bias,
-            drop_out=attn_drop,
-            out_dropout=attn_out_drop,
-        )
+       return self.norm_layer(self.dim)

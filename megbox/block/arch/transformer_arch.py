@@ -7,6 +7,8 @@ from megengine import module as M
 from megbox.block.layer_scale import LayerScale
 from megbox.module import DropPath
 
+from .mlp_arch import MlpArch
+
 __all__ = ["TransformerArch"]
 
 
@@ -20,12 +22,14 @@ class TransformerArch(M.Module, metaclass=ABCMeta):
     def __init__(
         self,
         dim: int,
+        attention: M.Module,
+        mlp: MlpArch,
         drop_path: Union[float, Sequence[float]] = 0.0,
-        layer_scale_init_value: Optional[Union[float, Sequence[float]]] = 1e-6,
+        layer_scale_init_value: Optional[Optional[Union[float, Sequence[float]]]] = 1e-6,
     ) -> None:
         super().__init__()
         self.dim = dim
-        self.attn = self._build_attention_module()
+        self.attn = attention
         pre_norm = self._build_pre_norm()
         post_norm = self._build_post_norm()
         self.pre_norm = pre_norm if pre_norm else M.Identity()
@@ -40,14 +44,10 @@ class TransformerArch(M.Module, metaclass=ABCMeta):
             self.ls2 = M.Identity()
 
         drop_path = _to_2tuple(drop_path)
-        self.drop_path1 = DropPath(drop_path) if drop_path[0] > 0.0 else M.Identity()
-        self.drop_path2 = DropPath(drop_path) if drop_path[0] > 0.0 else M.Identity()
+        self.drop_path1 = DropPath(drop_path[0]) if drop_path[0] else M.Identity()
+        self.drop_path2 = DropPath(drop_path[1]) if drop_path[1] else M.Identity()
 
-        self.mlp = self._build_mlp()
-
-    @abstractmethod
-    def _build_attention_module(self) -> M.Module:
-        raise NotImplementedError()
+        self.mlp = mlp
 
     @abstractmethod
     def _build_pre_norm(self) -> Optional[M.Module]:
@@ -55,10 +55,6 @@ class TransformerArch(M.Module, metaclass=ABCMeta):
 
     @abstractmethod
     def _build_post_norm(self) -> Optional[M.Module]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _build_mlp(self) -> M.Module:
         raise NotImplementedError()
 
     def forward(self, x: Tensor) -> Tensor:
