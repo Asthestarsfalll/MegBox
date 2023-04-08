@@ -1,5 +1,6 @@
 import megengine as mge
-from utils import _test_modules
+import random
+from .utils import _test_modules
 
 from megbox.attention import (BAMBlock, CBAMBlock, CrissCrossAttention,
                               EABlock, ECABlock, MultiheadAttention,

@@ -11,6 +11,7 @@ __all__ = ["MultiPathConv2d"]
 class MultiPathConv2d(M.Module, metaclass=ABCMeta):
     Concat = 0
     Sum = 1
+
     def __init__(
         self,
         in_channels: int,
@@ -32,22 +33,20 @@ class MultiPathConv2d(M.Module, metaclass=ABCMeta):
             self.func = sum
 
     def _build_in_conv(self) -> Optional[M.Module]:
-        return None
+        return M.Identity()
 
     def _build_out_conv(self) -> Optional[M.Module]:
-        return None
+        return M.Identity()
 
     @abstractmethod
     def _build_convs(self) -> List[M.Module]:
         raise NotImplementedError()
 
     def forward(self, x):
-        if self.in_conv is not None:
-            x  = self.in_conv(x)
+        x = self.in_conv(x)
 
         feats = [m(x) for m in self.convs]
         out = self.func(feats)
 
-        if self.out_conv is not None:
-            out = self.out_conv(out)
+        out = self.out_conv(out)
         return out

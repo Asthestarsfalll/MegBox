@@ -8,7 +8,6 @@ from megbox.attention.multi_head_self_attention import MultiheadAttention
 from megbox.block import Mlp
 from megbox.block.arch import TransformerArch
 from megbox.types import ModuleType
-from megbox.utils.msic import hack_module
 
 
 def top_k_top_p_filtering(
@@ -54,15 +53,15 @@ class TransformerBlock(TransformerArch):
     def __init__(
         self,
         dim: int,
-        num_heads: int,  
-        mlp_ratio: float = 4.0,  
-        qkv_bias: bool = False,  
-        mlp_drop: float = 0.0,  
-        attn_drop: float = 0.0,  
-        attn_out_drop: float = 0.0,  
+        num_heads: int,
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = False,
+        mlp_drop: float = 0.0,
+        attn_drop: float = 0.0,
+        attn_out_drop: float = 0.0,
         init_values: Optional[float] = None,
         drop_path: float = 0.0,
-        act_layer: ModuleType = GELU,  
+        act_layer: ModuleType = GELU,
         norm_layer: ModuleType = LayerNorm,
     ) -> None:
         attention = MultiheadAttention(
@@ -70,7 +69,7 @@ class TransformerBlock(TransformerArch):
             num_heads=num_heads,
             bias=qkv_bias,
             drop_out=attn_drop,
-            out_dropout=attn_out_drop
+            out_dropout=attn_out_drop,
         )
         mlp = Mlp(dim, int(dim * mlp_ratio), dim, act_layer, mlp_drop)
         self.norm_layer = norm_layer
@@ -81,4 +80,4 @@ class TransformerBlock(TransformerArch):
         return self.norm_layer(self.dim)
 
     def _build_post_norm(self) -> Optional[Module]:
-       return self.norm_layer(self.dim)
+        return self.norm_layer(self.dim)

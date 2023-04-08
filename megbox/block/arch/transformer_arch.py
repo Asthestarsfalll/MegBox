@@ -25,7 +25,9 @@ class TransformerArch(M.Module, metaclass=ABCMeta):
         attention: M.Module,
         mlp: MlpArch,
         drop_path: Union[float, Sequence[float]] = 0.0,
-        layer_scale_init_value: Optional[Optional[Union[float, Sequence[float]]]] = 1e-6,
+        layer_scale_init_value: Optional[
+            Optional[Union[float, Sequence[float]]]
+        ] = 1e-6,
     ) -> None:
         super().__init__()
         self.dim = dim

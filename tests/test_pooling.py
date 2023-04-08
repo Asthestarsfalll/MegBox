@@ -5,10 +5,11 @@ from torch.nn import AdaptiveAvgPool2d as TorchAdaptiveAvgPool2d
 from torch.nn import AdaptiveMaxPool2d as TorchAdaptiveMaxPool2d
 from torch.nn import AvgPool2d as TorchAvgPool2d
 from torch.nn import MaxPool2d as TorchMaxPool2d
-from utils import _test_modules
 
 from megbox.module.pooling import (AdaptiveAvgPool2d, AdaptiveMaxPool2d,
                                    AvgPool2d, MaxPool2d)
+
+from .utils import _test_modules
 
 GLOBAL_RTOL = 1e-3
 GLOBAL_ATOL = 1e-7
