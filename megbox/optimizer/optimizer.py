@@ -49,20 +49,20 @@ class Lion(Optimizer):  # pylint: disable=abstract-method
             exp_avg = states["exp_avg"]
 
             # Perform stepweight decay
-            param.set_value(param * (1 - _lr * _weight_decay))
+            param[...] = param * (1 - _lr * _weight_decay)
 
             # Weight update
             update = exp_avg * _beta0 + grad * (1 - _beta0)
 
             # don't support `Parameter` input
             # _inplace_add_(param, F.sign(update), alpha=make_scalar(1), beta=-_lr)
-            param.set_value(param + F.sign(update) * -_lr)
+            param[...] = param + F.sign(update) * -_lr
 
             # Decay the momentum running average coefficient
-            exp_avg.set_value(exp_avg * _beta1)
+            exp_avg[...] = exp_avg * _beta1
 
             # _inplace_add_(exp_avg, grad, alpha=1, beta=1 - _beta1)
-            exp_avg.set_value(exp_avg + (1 - _beta1) * grad)
+            exp_avg[...] = exp_avg + (1 - _beta1) * grad
 
 
 class Tiger(Optimizer):  # pylint: disable=abstract-method
@@ -112,9 +112,9 @@ class Tiger(Optimizer):  # pylint: disable=abstract-method
             exp_avg = states["exp_avg"]
 
             # Perform stepweight decay
-            param.set_value(param * (1 - _lr * _weight_decay))
+            param[...] = param * (1 - _lr * _weight_decay)
 
             # Weight update
             update = exp_avg * _beta + grad * (1 - _beta)
 
-            param.set_value(param + F.sign(update) * -_lr)
+            param[...] = param + F.sign(update) * -_lr

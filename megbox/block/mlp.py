@@ -24,8 +24,10 @@ class ConvMlp(MlpArch):
 
 class SegNeXtMlp(MlpArch):
     def _build_fc1(self, in_chan, out_chan):
-        return Sequential(Conv2d(in_chan, out_chan, 1),
-                          Conv2d(out_chan, out_chan, 3, padding=1, groups=out_chan))
+        return Sequential(
+            Conv2d(in_chan, out_chan, 1),
+            Conv2d(out_chan, out_chan, 3, padding=1, groups=out_chan),
+        )
 
     def _build_fc2(self, in_chan, out_chan):
         return Conv2d(in_chan, out_chan, 1)

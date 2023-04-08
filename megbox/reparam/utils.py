@@ -16,8 +16,6 @@ def zero_padding(x: Tensor, pad_size: int) -> Tensor:
 
 
 def create_identity_kernel(groups_channel, groups):
-    # group convlution kernel shape:
-    # [groups, out_channels // groups, in_channels // groups, kernel_size, kernel_size]
     kernel_value = F.zeros(
         (groups_channel * groups, groups_channel, 1, 1), dtype="float32"
     )

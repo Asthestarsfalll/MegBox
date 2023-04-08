@@ -6,11 +6,12 @@ from torch.optim.lr_scheduler import CosineAnnealingLR as t_CosineAnnealingLR
 from torch.optim.lr_scheduler import CyclicLR as t_CyclicLR
 from torch.optim.lr_scheduler import LambdaLR as t_LambdaLR
 from torch.optim.lr_scheduler import OneCycleLR as t_OneCycleLR
-from utils import _test_modules
 
 from megbox.optimizer.lr_scheduler import (CosineAnnealingLR, CyclicLR,
                                            LambdLR, OneCycleLR)
 from megbox.optimizer.params_helper import filter_params
+
+from .utils import _test_modules
 
 LRSCHEDULERS = dict(
     cos=CosineAnnealingLR,

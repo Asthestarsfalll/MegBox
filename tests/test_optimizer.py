@@ -5,9 +5,10 @@ import torch
 from megengine import autodiff
 from torch.nn import init
 from torch.optim.optimizer import Optimizer
-from utils import _init_weights, _test_modules
 
 from megbox.optimizer import Lion, Tiger
+
+from .utils import _init_weights, _test_modules
 
 GLOBAL_RTOL = 1e-3
 GLOBAL_ATOL = 1e-5

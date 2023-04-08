@@ -5,10 +5,12 @@ from megengine.utils.tuple_function import _pair, _quadruple, _single, _triple
 
 from ..types import Number
 
-to_1tuple : Callable[[Union[Sequence[Number], Number]], Tuple[int]] = _single
-to_2tuple : Callable[[Union[Sequence[Number], Number]], Tuple[int, int]]= _pair
-to_3tuple : Callable[[Union[Sequence[Number], Number]], Tuple[int, int, int]]= _triple
-to_4tuple : Callable[[Union[Sequence[Number], Number]], Tuple[int, int, int, int]]= _quadruple
+to_1tuple: Callable[[Union[Sequence[Number], Number]], Tuple[int]] = _single
+to_2tuple: Callable[[Union[Sequence[Number], Number]], Tuple[int, int]] = _pair
+to_3tuple: Callable[[Union[Sequence[Number], Number]], Tuple[int, int, int]] = _triple
+to_4tuple: Callable[
+    [Union[Sequence[Number], Number]], Tuple[int, int, int, int]
+] = _quadruple
 
 
 def is_seq_of(seq, expected_type, seq_type=None):

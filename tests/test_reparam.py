@@ -1,9 +1,10 @@
 import megengine as mge
 import numpy as np
 from megengine.module import Identity
-from utils import _init_weights, _test_modules
 
 from megbox.reparam import RepConv2d, RepLargeKernelConv2d
+
+from .utils import _init_weights, _test_modules
 
 GLOBAL_RTOL = 1e-1
 GLOBAL_ATOL = 1e-5
